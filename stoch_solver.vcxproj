@@ -25,7 +25,9 @@
     <ClInclude Include="src\grid\Variables.hpp" />
     <ClInclude Include="src\model\AbstractModel.hpp" />
     <ClInclude Include="src\model\oil\Oil.hpp" />
+    <ClInclude Include="src\model\oil\OilMethod.hpp" />
     <ClInclude Include="src\model\oil\Properties.hpp" />
+    <ClInclude Include="src\Scene.hpp" />
     <ClInclude Include="src\utils\Interpolate.h" />
     <ClInclude Include="src\utils\utils.h" />
     <ClInclude Include="src\utils\VTKSnapshotter.hpp" />
@@ -90,20 +92,20 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);C:\proj\adolc\adolc_sparse_x64\include;C:\proj\stoch_solver;C:\Program Files\VTK\include\vtk-7.1</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);F:\Temperature\ADOL-C-2.6.2\adolc_sparse_x64\include;F:\Temperature\stoch_solver;C:\Program Files\VTK\include\vtk-7.1</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);C:\proj\adolc\adolc_sparse_x64\include;C:\proj\stoch_solver;C:\Program Files\VTK\include\vtk-7.1</IncludePath>
-    <LibraryPath>C:\proj\adolc\adolc_sparse_x64\lib;C:\Program Files\VTK\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);F:\Temperature\ADOL-C-2.6.2\adolc_sparse_x64\include;F:\Temperature\stoch_solver;C:\Program Files\VTK\include\vtk-7.1</IncludePath>
+    <LibraryPath>F:\Temperature\ADOL-C-2.6.2\adolc_nosparse_x64\lib;C:\Program Files\VTK\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);C:\proj\adolc\adolc_sparse_x64\include;C:\proj\stoch_solver;C:\Program Files\VTK\include\vtk-7.1</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);F:\Temperature\ADOL-C-2.6.2\adolc_sparse_x64\include;F:\Temperature\stoch_solver;C:\Program Files\VTK\include\vtk-7.1</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);C:\proj\adolc\adolc_sparse_x64\include;C:\proj\stoch_solver;C:\Program Files\VTK\include\vtk-7.1</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);F:\Temperature\ADOL-C-2.6.2\adolc_sparse_x64\include;F:\Temperature\stoch_solver;C:\Program Files\VTK\include\vtk-7.1</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

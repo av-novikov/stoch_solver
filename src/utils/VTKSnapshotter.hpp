@@ -16,9 +16,10 @@ namespace snapshotter
 		const std::string prefix = "snaps/";
 		std::string pattern;
 		std::string replace(std::string filename, std::string from, std::string to);
-		std::string getFileName(const int i);
+		std::string getFileName(const int snap_idx);
 
 		double R_dim;
+		size_t num_x, num_y;
 	public:
 		VTKSnapshotter(const Model* _model);
 		~VTKSnapshotter();

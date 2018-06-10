@@ -8,9 +8,9 @@ class Interpolate
 {
 	public:
 	Interpolate();
-	Interpolate(double *ptx, double *pty, int N);
-	Interpolate(double *ptx, double *pty, double *dpty, int N);
-	Interpolate(double *ptx, double *pty, double *dpty,double *d2pty, int N);
+	Interpolate(double *ptx, double *pty, size_t N);
+	Interpolate(double *ptx, double *pty, double *dpty, size_t N);
+	Interpolate(double *ptx, double *pty, double *dpty,double *d2pty, size_t N);
 	~Interpolate();
 	
 	double Solve(double arg);
@@ -23,8 +23,8 @@ class Interpolate
 	double *dy;
 	double *d2y;
 	int *Flag;
-	int N;
-	int Nf;
+	size_t N;
+	size_t Nf;
 	double xmin, xmax, temp;
 	bool IsSetDiff;
 	bool IsSetDiff2;

@@ -60,19 +60,6 @@ protected:
 	double depth_point;
 	// During the time flow rate decreases 'e' times in well test [sec] 
 
-	virtual void loadMesh(const std::string nebrFileName)
-	{
-		/*mshreader::MshReader reader;
-		mesh = std::make_shared<grid::Mesh>(*reader.read(nebrFileName, R_dim));
-		mesh->process_geometry();
-
-		cellsNum = mesh.get()->getCalcCellsSize();
-		varNum = VarContainer::size * cellsNum;
-		u_prev.resize(varNum);
-		u_iter.resize(varNum);
-		u_next.resize(varNum);
-		Volume = mesh->Volume;*/
-	}
 	adouble linearInterp1d(const adouble a1, const double r1, const adouble a2, const double r2)
 	{
 		return (a1 * r2 + a2 * r1) / (r1 + r2);

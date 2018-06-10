@@ -29,7 +29,7 @@ namespace elem
 
 		Quad(const int _id, const Type _type) : Element(_id, _type) {};
 		Quad(const int _id, const Type _type, const Point _cent, const Point _sizes) : 
-			Element(_id, _type), cent(_cent), hx(_sizes.x), hy(_sizes.y), hz(_sizes.z) {};
+			Element(_id, _type), cent(_cent), hx(_sizes.x), hy(_sizes.y), hz(_sizes.z), V(_sizes.x * _sizes.y * _sizes.z) {};
 	};
 };
 

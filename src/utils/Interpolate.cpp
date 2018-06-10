@@ -9,7 +9,7 @@ Interpolate::~Interpolate()
 {
 }
 
-Interpolate::Interpolate(double *ptx, double *pty, int _N)
+Interpolate::Interpolate(double *ptx, double *pty, size_t _N)
 {
 	Nf = 1000000;
 	Flag = new int[Nf+1];
@@ -28,14 +28,14 @@ Interpolate::Interpolate(double *ptx, double *pty, int _N)
 	temp = (xmax - xmin)/Nf;
 	
 	for (int i = 0; i < N-1; i++)
-		for (j = floor((x[i] - xmin)/temp); j <= floor((x[i+1] - xmin)/temp); j++)
+		for (j = (int)floor((x[i] - xmin)/temp); j <= (int)floor((x[i+1] - xmin)/temp); j++)
 			Flag[j] = i;
 	
 	IsSetDiff = false;
 
 }
 
-Interpolate::Interpolate(double *ptx, double *pty, double *dpty, int N)
+Interpolate::Interpolate(double *ptx, double *pty, double *dpty, size_t N)
 {
 	Nf = 10000;
 	Flag = new int[Nf+1];
@@ -51,14 +51,14 @@ Interpolate::Interpolate(double *ptx, double *pty, double *dpty, int N)
 	xmax = x[N-1];
 	temp = (xmax - xmin)/Nf;
 	for (int i = 0; i < N-1; i++){
-		for (int j = floor((x[i] - xmin)/temp); j <= floor((x[i+1] - xmin)/temp); j++)
+		for (int j = (int)floor((x[i] - xmin)/temp); j <= (int)floor((x[i+1] - xmin)/temp); j++)
 		Flag[j] = i;
 	}
 	IsSetDiff = true;
 
 }
 
-Interpolate::Interpolate(double *ptx, double *pty, double *dpty, double *d2pty, int N)
+Interpolate::Interpolate(double *ptx, double *pty, double *dpty, double *d2pty, size_t N)
 {
 	Nf = 10000;
 	Flag = new int[Nf+1];
@@ -77,7 +77,7 @@ Interpolate::Interpolate(double *ptx, double *pty, double *dpty, double *d2pty, 
 	xmax = x[N-1];
 	temp = (xmax - xmin)/Nf;
 	for (int i = 0; i < N-1; i++){
-		for (int j = floor((x[i] - xmin)/temp); j <= floor((x[i+1] - xmin)/temp); j++)
+		for (int j = (int)floor((x[i] - xmin)/temp); j <= (int)floor((x[i+1] - xmin)/temp); j++)
 		Flag[j] = i;
 	}
 	IsSetDiff = true;
@@ -91,7 +91,7 @@ double Interpolate::Solve(double arg)
 	else if(arg > xmax) 
 		arg = xmax;
 
-	int index = floor( (arg - xmin) / temp );
+	int index = (int)floor( (arg - xmin) / temp );
 	double dx = x[Flag[index]+1] - x[Flag[index]];
 	double dy = y[Flag[index]+1] - y[Flag[index]];
 	
@@ -121,7 +121,7 @@ double Interpolate::DSolve(double arg)
 	else if(arg > xmax)
 		return 0;
 
-	int i = floor((arg - xmin)/temp);
+	int i = (int)floor((arg - xmin)/temp);
 	int index = Flag[i];
 	
 	if (IsSetDiff)
@@ -144,9 +144,9 @@ double Interpolate::D2Solve(double arg)
 	double dx;
 	double dcy;
 	
-	int i = floor((arg - xmin)/temp);
+	int i = (int)floor((arg - xmin)/temp);
 	if (i > Nf)
-		i= Nf;
+		i = (int)Nf;
 	if (i < 0)
 		i = 0;
     int index = Flag[i];

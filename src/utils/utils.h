@@ -118,11 +118,11 @@ inline Interpolate* setDataset(vector< pair<double,double> >& vec, const double 
 {
 	sort(vec.begin(), vec.end(), sort_pair_first());
 
-	const int N = vec.size();
+	const size_t N = vec.size();
 	double* x = new double [N];
 	double* y  = new double [N];
 
-	for (int i = 0; i < N; i++)
+	for (size_t i = 0; i < N; i++)
 	{
 		x[i] = vec[i].first / xDim;
 		y[i] = vec[i].second / yDim;
@@ -135,11 +135,11 @@ inline Interpolate* setInvDataset(vector< pair<double,double> >& vec, const doub
 {
 	sort(vec.begin(), vec.end(), sort_pair_second());
 
-	const int N = vec.size();
+	const size_t N = vec.size();
 	double* x = new double [N];
 	double* y  = new double [N];
 
-	for (int i = 0; i < N; i++)
+	for (size_t i = 0; i < N; i++)
 	{
 		x[i] = vec[i].second / xDim;
 		y[i] = vec[i].first / yDim;

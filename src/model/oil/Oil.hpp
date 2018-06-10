@@ -9,14 +9,13 @@ namespace oil
 	class Oil : public AbstractModel<var::containers::Var1phase, Properties, var::BasicVariables, mesh::RectangularUniformGrid, Oil>
 	{
 	protected:
-		void setProps(const Properties& props);
-		void loadMesh();
 		void makeDimLess();
 		void setInitialState();
 	public:
 		Oil();
 		~Oil();
 
+		void setProps(const Properties& props);
 		void setPeriod(const int period);
 	};
 };
