@@ -68,6 +68,8 @@ void VTKSnapshotter<oil::Oil>::dump(const int snap_idx)
 	auto grid = vtkSmartPointer<vtkUnstructuredGrid>::New();
 	auto points = vtkSmartPointer<vtkPoints>::New();
 	auto cells = vtkSmartPointer<vtkCellArray>::New();
+	auto p0 = vtkSmartPointer<vtkDoubleArray>::New();
+	p0->SetName("p0");
 
 	points->Allocate((num_x + 1) * (num_y + 1));
 	cells->Allocate(num_x * num_y);
@@ -82,7 +84,7 @@ void VTKSnapshotter<oil::Oil>::dump(const int snap_idx)
 		}
 	grid->SetPoints(points);
 
-	int x_ind, y_ind;
+	size_t x_ind, y_ind;
 	for (const auto& cell : mesh->cells)
 	{
 		if (cell.type == elem::QUAD)
@@ -96,9 +98,15 @@ void VTKSnapshotter<oil::Oil>::dump(const int snap_idx)
 			quad->GetPointIds()->SetId(2, y_ind + (x_ind + 1) * (num_y + 1) + 1);
 			quad->GetPointIds()->SetId(3, y_ind + (x_ind + 1) * (num_y + 1));
 			cells->InsertNextCell(quad);
+
+			const auto& var = (*model)[cell.id].u_next;
+			p0->InsertNextValue(var.p0 * model->P_dim / BAR_TO_PA);
 		}
 	}
 	grid->SetCells(VTK_QUAD, cells);
+
+	vtkCellData* fd = grid->GetCellData();
+	fd->AddArray(p0);
 
 	auto writer = vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
 	writer->SetFileName(getFileName(snap_idx).c_str());

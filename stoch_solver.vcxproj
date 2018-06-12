@@ -23,6 +23,7 @@
     <ClInclude Include="src\grid\Point.hpp" />
     <ClInclude Include="src\grid\RectangularUniformGrid.hpp" />
     <ClInclude Include="src\grid\Variables.hpp" />
+    <ClInclude Include="src\model\AbstractMethod.hpp" />
     <ClInclude Include="src\model\AbstractModel.hpp" />
     <ClInclude Include="src\model\oil\Oil.hpp" />
     <ClInclude Include="src\model\oil\OilMethod.hpp" />
@@ -35,7 +36,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="src\model\AbstractMethod.cpp" />
     <ClCompile Include="src\model\oil\Oil.cpp" />
+    <ClCompile Include="src\model\oil\OilMethod.cpp" />
     <ClCompile Include="src\utils\Interpolate.cpp" />
     <ClCompile Include="src\utils\VTKSnapshotter.cpp" />
   </ItemGroup>
@@ -92,20 +95,20 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);F:\Temperature\ADOL-C-2.6.2\adolc_sparse_x64\include;F:\Temperature\stoch_solver;C:\Program Files\VTK\include\vtk-7.1</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);F:\Temperature\ADOL-C-2.6.2\adolc_sparse_x64\include;F:\Temperature\stoch_solver;C:\Program Files\VTK\include\vtk-7.1;F:\Temperature\paralution-1.1.0\paralution-1.1.0\src</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);F:\Temperature\ADOL-C-2.6.2\adolc_sparse_x64\include;F:\Temperature\stoch_solver;C:\Program Files\VTK\include\vtk-7.1</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);F:\Temperature\ADOL-C-2.6.2\adolc_sparse_x64\include;F:\Temperature\stoch_solver;C:\Program Files\VTK\include\vtk-7.1;F:\Temperature\paralution-1.1.0\paralution-1.1.0\src</IncludePath>
     <LibraryPath>F:\Temperature\ADOL-C-2.6.2\adolc_nosparse_x64\lib;C:\Program Files\VTK\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);F:\Temperature\ADOL-C-2.6.2\adolc_sparse_x64\include;F:\Temperature\stoch_solver;C:\Program Files\VTK\include\vtk-7.1</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);F:\Temperature\ADOL-C-2.6.2\adolc_sparse_x64\include;F:\Temperature\stoch_solver;C:\Program Files\VTK\include\vtk-7.1;F:\Temperature\paralution-1.1.0\paralution-1.1.0\src</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);F:\Temperature\ADOL-C-2.6.2\adolc_sparse_x64\include;F:\Temperature\stoch_solver;C:\Program Files\VTK\include\vtk-7.1</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);F:\Temperature\ADOL-C-2.6.2\adolc_sparse_x64\include;F:\Temperature\stoch_solver;C:\Program Files\VTK\include\vtk-7.1;F:\Temperature\paralution-1.1.0\paralution-1.1.0\src</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

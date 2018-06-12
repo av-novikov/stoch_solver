@@ -10,15 +10,16 @@ namespace mesh
 	class RectangularUniformGrid
 	{
 		template<typename> friend class snapshotter::VTKSnapshotter;
-		template<typename> friend class AbstractSolver;
+		template<typename> friend class AbstractMethod;
 	public:
 		typedef elem::Quad Cell;
+	public:
 		std::vector<Cell> cells;
 		
 		const int num_x, num_y, num;
 		const double hx, hy, hz;
 		const double V;
-
+	public:
 		RectangularUniformGrid(const int _num_x, const int _num_y, const double _hx, const double _hy, const double _hz) :
 			num_x(_num_x), num_y(_num_y), num((_num_x + 2) * (_num_y + 2)), hx(_hx), hy(_hy), hz(_hz), V(_hx * _hy * _hz) 
 		{

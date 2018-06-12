@@ -16,7 +16,7 @@ template <typename TVarContainer, typename propsType, template <typename TVarCon
 class AbstractModel : public TVariables<TVarContainer>
 {
 	template<typename> friend class snapshotter::VTKSnapshotter;
-	template<typename> friend class AbstractSolver;
+	template<typename> friend class AbstractMethod;
 public:
 	typedef TVarContainer VarContainer;
 	typedef TVariables<TVarContainer> Variables;
@@ -35,7 +35,7 @@ protected:
 	// Number of unknown variables
 	size_t varNum;
 	// Number of unknown variables in cell
-	static const int var_size;
+	static const int var_size = VarContainer::size;
 
 	// Rate of the well
 	std::vector<Well> wells;
@@ -44,16 +44,6 @@ protected:
 	double ht;
 	double ht_min;
 	double ht_max;
-	// Number of periods
-	size_t periodsNum;
-	// End times of periods [sec]
-	std::vector<double> period;
-	// Oil rates [m3/day]
-	std::vector<double> rate;
-	// Vector of BHPs [bar]
-	std::vector<double> pwf;
-	// If left boundary condition would be 2nd type
-	bool leftBoundIsRate;
 	// If right boundary condition would be 1st type
 	bool rightBoundIsPres;
 	// BHP will be converted to the depth
@@ -83,10 +73,9 @@ public:
 	double Q_dim;
 	double grav;
 
-	void load(const Properties& props, const std::string nebrFileName)
+	void load(const Properties& props)
 	{
 		setProps(props);
-		loadMesh(nebrFileName);
 		setInitialState();
 	};
 	virtual void setPeriod(const int period) = 0;
