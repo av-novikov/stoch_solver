@@ -94,6 +94,7 @@ public:
 	{
 		snapshotter = std::make_shared<SnapShotter>(model);
 	}
+	virtual double getRate(const Well& well) const = 0;
 };
 
 #endif /* ABSTRACTMODEL_HPP_ */

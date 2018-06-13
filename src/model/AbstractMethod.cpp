@@ -86,5 +86,4 @@ void AbstractMethod<modelType>::averValue(std::array<double, var_size>& aver)
 		val /= mesh->V;
 }
 
-
 template class AbstractMethod<oil::Oil>;

@@ -13,6 +13,7 @@ namespace mesh
 		template<typename> friend class AbstractMethod;
 	public:
 		typedef elem::Quad Cell;
+		static const int stencil = 5;
 	public:
 		std::vector<Cell> cells;
 		

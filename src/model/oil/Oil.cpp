@@ -51,6 +51,7 @@ void Oil::makeDimLess()
 
 	for (auto& well : wells)
 	{
+		well.rw /= R_dim;
 		well.period /= t_dim;
 		well.pwf /= P_dim;
 		well.rate /= Q_dim;
@@ -66,6 +67,14 @@ void Oil::setInitialState()
 		auto data = (*this)[i];
 		data.u_prev.p0 = data.u_iter.p0 = data.u_next.p0 = props_sk.p_init;
 	}
+
+	// WI calculation
+	for (auto& well : wells)
+	{
+		const Cell& cell = mesh->cells[well.cell_id];
+		well.r_peaceman = 0.28 * sqrt(cell.hx * cell.hx + cell.hy * cell.hy) / 2.0;
+		well.WI = 2.0 * M_PI * props_sk.perm * cell.hz / log(well.r_peaceman / well.rw);
+	}
 }
 void Oil::setPeriod(const int period)
 {
@@ -76,5 +85,15 @@ void Oil::setPeriod(const int period)
 			well.cur_rate = well.rate[period];
 		else
 			well.cur_pwf = well.pwf[period];
+	}
+}
+double Oil::getRate(const Well& well) const
+{
+	if (well.cur_bound)
+		return well.cur_rate;
+	else
+	{
+		double p_cell = (*this)[well.cell_id].u_next.p0;
+		return well.WI * (p_cell - well.cur_pwf) / props_oil.visc;
 	}
 }

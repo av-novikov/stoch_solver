@@ -28,5 +28,6 @@ namespace oil
 
 		void setProps(const Properties& props);
 		void setPeriod(const int period);
+		double getRate(const Well& well) const;
 	};
 };

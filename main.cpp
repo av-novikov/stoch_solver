@@ -40,6 +40,7 @@ int main()
 	well.pwf[0] = 90.0 * BAR_TO_PA;
 	well.leftBoundIsRate.resize(well.periodsNum);
 	well.leftBoundIsRate[0] = false;
+	well.rw = 0.1;
 
 	Scene<issues::Oil> scene;
 	scene.load(props);

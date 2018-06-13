@@ -1,13 +1,15 @@
 #ifndef WELL_HPP_
 #define WELL_HPP_
 
+#define _USE_MATH_DEFINES
+#include <math.h>
+
 #include <valarray>
 
 class Well
 {
-protected:
-	size_t cell_id;
 public:
+	size_t cell_id;
 	// Number of periods
 	size_t periodsNum;
 	// End times of periods [sec]
@@ -22,6 +24,8 @@ public:
 	size_t cur_period;
 	double cur_rate, cur_pwf;
 	bool cur_bound;
+
+	double rw, r_peaceman, WI;
 
 	Well(const size_t _cell_id) : cell_id(_cell_id) {};
 	~Well() {};
