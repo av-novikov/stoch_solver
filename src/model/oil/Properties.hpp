@@ -12,12 +12,31 @@ namespace oil
 {
 	struct Skeleton_Props
 	{
+		double m;
 		double p_init;
+		double p_out;
 		double perm;
 	};
 	struct Oil_Props
 	{
 		double visc;
+		double rho_stc;
+		double beta;
+
+		double p_ref;
+		inline adouble getB(adouble p) const
+		{
+			return exp(-(adouble)beta * (p - p_ref));
+		};
+		inline adouble getDensity(adouble p) const
+		{
+			return rho_stc / getB(p);
+		};
+		inline adouble getViscosity(const adouble p) const
+		{
+			return (adouble)(visc);
+		};
+
 	};
 	struct Properties
 	{

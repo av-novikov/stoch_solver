@@ -1,5 +1,7 @@
 #include "src/model/oil/Oil.hpp"
 
+#include <assert.h>
+
 using namespace oil;
 
 Oil::Oil()
@@ -35,6 +37,12 @@ void Oil::setProps(const Properties& props)
 	props_oil.visc = cPToPaSec(props_oil.visc);
 
 	wells = props.wells;
+	for (int i = 0; i < wells.back().periodsNum; i++)
+	{
+		auto& well = wells[i];
+		if (well.leftBoundIsRate[i])
+			well.rate[i] /= 86400.0;
+	}
 
 	makeDimLess();
 }
@@ -47,6 +55,7 @@ void Oil::makeDimLess()
 	ht_max /= t_dim;
 
 	props_sk.p_init /= P_dim;
+	props_sk.p_out /= P_dim;
 	props_sk.perm /= R_dim * R_dim;
 
 	for (auto& well : wells)
@@ -58,6 +67,9 @@ void Oil::makeDimLess()
 	}
 
 	props_oil.visc /= P_dim * t_dim;
+	props_oil.p_ref /= P_dim;
+	props_oil.beta /= (1.0 / P_dim);
+	props_oil.rho_stc /= (P_dim * t_dim * t_dim / R_dim / R_dim);
 }
 void Oil::setInitialState()
 {
@@ -96,4 +108,47 @@ double Oil::getRate(const Well& well) const
 		double p_cell = (*this)[well.cell_id].u_next.p0;
 		return well.WI * (p_cell - well.cur_pwf) / props_oil.visc;
 	}
+}
+double Oil::getPwf(const Well& well) const
+{
+	if (well.cur_bound)
+	{
+		double p_cell = (*this)[well.cell_id].u_next.p0;
+		return p_cell - well.cur_rate * props_oil.visc / well.WI;
+	}
+	else
+		return well.cur_pwf;
+}
+
+adouble Oil::solveInner(const Cell& cell) const
+{
+	assert(cell.type == elem::QUAD);
+
+	const auto& next = x[cell.id];
+	const auto prev = (*this)[cell.id].u_prev;
+	adouble H = getPoro(cell) * props_oil.getDensity(next.p0) - getPoro(cell) * props_oil.getDensity(prev.p0);
+	adouble interp_middle;
+
+	for (int i = 0; i < 4; i++)
+	{
+		const Cell& beta = mesh->cells[cell.stencil[i + 1]];
+		const auto& nebr = x[cell.stencil[i + 1]];
+		if (abs(cell.id - beta.id) == 1)
+			interp_middle = linearInterp1d(props_oil.getDensity(next.p0) / props_oil.getViscosity(next.p0), cell.hy,
+				props_oil.getDensity(nebr.p0) / props_oil.getViscosity(nebr.p0), beta.hy);
+		else
+			interp_middle = linearInterp1d(props_oil.getDensity(next.p0) / props_oil.getViscosity(next.p0), cell.hx,
+				props_oil.getDensity(nebr.p0) / props_oil.getViscosity(nebr.p0), beta.hx);
+		double inter = interp_middle.value();
+		H += ht / cell.V * cell.trans[i] * interp_middle * (next.p0 - nebr.p0);
+	}
+
+	return H;
+}
+adouble Oil::solveBorder(const Cell& cell) const
+{
+	assert(cell.type == elem::BORDER);
+	const auto& cur = x[cell.id];
+	const auto& nebr = x[cell.stencil[1]];
+	return (cur.p0 - (adouble)(props_sk.p_out)) / P_dim;
 }

@@ -39,32 +39,64 @@ protected:
 	virtual void doNextStep();
 	virtual void solveStep() = 0;
 
-	std::vector<int> stencil_idx;
-	inline void getMatrixStencil(const Cell& cell)
+	inline void getMatrixStencil(Cell& cell)
 	{
+		const size_t ind_x = int(cell.id / (mesh->num_y + 2));
+		const size_t ind_y = cell.id % (mesh->num_y + 2);
+		cell.stencil[0] = cell.id;
+
+		const double k1 = model->getPerm(cell);
+		double k2;
+
 		if (cell.type == elem::BORDER)
 		{
-			stencil_idx.resize(2);
-			stencil_idx[0] = cell.id;
-			const size_t ind_x = int(cell.id / (mesh->num_y + 2));
-			const size_t ind_y = cell.id % (mesh->num_y + 2);
-			if(ind_y == 0)
-				stencil_idx[1] = cell.id + 1;
-			else if(ind_y == mesh->num_y + 1)
-				stencil_idx[1] = cell.id - 1;
+			if (ind_y == 0)
+			{
+				cell.stencil[1] = cell.id + 1;
+				const Cell& beta = mesh->cells[cell.stencil[1]];
+				k2 = model->getPerm(beta);
+				cell.trans[0] = 2.0 * k1 * k2 * cell.hz * cell.hx / (k1 * beta.hy + k2 * cell.hy);
+			}
+			else if (ind_y == mesh->num_y + 1)
+			{
+				cell.stencil[1] = cell.id - 1;
+				const Cell& beta = mesh->cells[cell.stencil[1]];
+				k2 = model->getPerm(beta);
+				cell.trans[0] = 2.0 * k1 * k2 * cell.hz * cell.hx / (k1 * beta.hy + k2 * cell.hy);
+			}
 			if (ind_x == 0)
-				stencil_idx[1] = cell.id + mesh->num_y + 2;
+			{
+				cell.stencil[1] = cell.id + mesh->num_y + 2;
+				const Cell& beta = mesh->cells[cell.stencil[1]];
+				k2 = model->getPerm(beta);
+				cell.trans[0] = 2.0 * k1 * k2 * cell.hz * cell.hy / (k1 * beta.hx + k2 * cell.hx);
+			}
 			else if (ind_x == mesh->num_x + 1)
-				stencil_idx[1] = cell.id - mesh->num_y - 2;
+			{
+				cell.stencil[1] = cell.id - mesh->num_y - 2;
+				const Cell& beta = mesh->cells[cell.stencil[1]];
+				k2 = model->getPerm(beta);
+				cell.trans[0] = 2.0 * k1 * k2 * cell.hz * cell.hy / (k1 * beta.hx + k2 * cell.hx);
+			}
 		}
 		else
 		{
-			stencil_idx.resize(Mesh::stencil);
-			stencil_idx[0] = cell.id;
-			stencil_idx[1] = cell.id - 1;
-			stencil_idx[2] = cell.id + 1;
-			stencil_idx[3] = cell.id - mesh->num_y - 2;
-			stencil_idx[4] = cell.id + mesh->num_y + 2;
+			cell.stencil[1] = cell.id - 1;
+			const Cell& beta1 = mesh->cells[cell.stencil[1]];
+			k2 = model->getPerm(beta1);
+			cell.trans[0] = 2.0 * k1 * k2 * cell.hz * cell.hx / (k1 * beta1.hy + k2 * cell.hy);
+			cell.stencil[2] = cell.id + 1;
+			const Cell& beta2 = mesh->cells[cell.stencil[2]];
+			k2 = model->getPerm(beta2);
+			cell.trans[1] = 2.0 * k1 * k2 * cell.hz * cell.hx / (k1 * beta2.hy + k2 * cell.hy);
+			cell.stencil[3] = cell.id - mesh->num_y - 2;
+			const Cell& beta3 = mesh->cells[cell.stencil[3]];
+			k2 = model->getPerm(beta3);
+			cell.trans[2] = 2.0 * k1 * k2 * cell.hz * cell.hy / (k1 * beta3.hx + k2 * cell.hx);
+			cell.stencil[4] = cell.id + mesh->num_y + 2;
+			const Cell& beta4 = mesh->cells[cell.stencil[4]];
+			k2 = model->getPerm(beta4);
+			cell.trans[3] = 2.0 * k1 * k2 * cell.hz * cell.hy / (k1 * beta4.hx + k2 * cell.hx);
 		}
 	};
 
@@ -87,19 +119,20 @@ public:
 	virtual void fill() = 0;
 	void fillIndices()
 	{
+
 		int counter = 0;
 
 		for (int i = 0; i < model->varNum; i++)
 		{
-			const auto& cell = mesh->cells[i];
+			auto& cell = mesh->cells[i];
 			getMatrixStencil(cell);
+			
 			for (size_t i = 0; i < var_size; i++)
-				for (const int idx : stencil_idx)
+				for (const int idx : cell.stencil)
 					for (size_t j = 0; j < var_size; j++)
 					{
 						ind_i[counter] = var_size * cell.id + i;			ind_j[counter++] = var_size * idx + j;
 					}
-			stencil_idx.clear();
 		}
 
 		elemNum = counter;

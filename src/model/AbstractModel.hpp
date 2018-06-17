@@ -50,7 +50,7 @@ protected:
 	double depth_point;
 	// During the time flow rate decreases 'e' times in well test [sec] 
 
-	adouble linearInterp1d(const adouble a1, const double r1, const adouble a2, const double r2)
+	adouble linearInterp1d(const adouble a1, const double r1, const adouble a2, const double r2) const
 	{
 		return (a1 * r2 + a2 * r1) / (r1 + r2);
 	};

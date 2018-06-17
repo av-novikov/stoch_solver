@@ -10,7 +10,7 @@ using namespace std;
 
 template <class modelType>
 AbstractMethod<modelType>::AbstractMethod(modelType* _model) : model(_model), mesh(_model->getMesh()), 
-	size(_model->getCellsNum()), Tt(model->wells.back().period[model->wells.back().periodsNum])
+	size(_model->getCellsNum()), Tt(model->wells.back().period[model->wells.back().periodsNum - 1])
 {
 	cur_t = cur_t_log = 0.0;
 	curTimePeriod = 0;

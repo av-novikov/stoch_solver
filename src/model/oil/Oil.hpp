@@ -22,6 +22,18 @@ namespace oil
 		Skeleton_Props props_sk;
 		Oil_Props props_oil;
 		std::vector<Well> wells;
+
+		double getPoro(const Cell& cell) const
+		{
+			return props_sk.m;
+		};
+		double getPerm(const Cell& cell) const
+		{
+			return props_sk.perm;
+		};
+
+		adouble solveInner(const Cell& cell) const;
+		adouble solveBorder(const Cell& cell) const;
 	public:
 		Oil();
 		~Oil();
@@ -29,5 +41,6 @@ namespace oil
 		void setProps(const Properties& props);
 		void setPeriod(const int period);
 		double getRate(const Well& well) const;
+		double getPwf(const Well& well) const;
 	};
 };

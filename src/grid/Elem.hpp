@@ -8,18 +8,30 @@ namespace elem
 	typedef point::Point Point;
 
 	enum Type {QUAD, BORDER};
+	template <int MaxStencilNum>
 	class Element
 	{
 	protected:
-
+		
 	public:
 		int id;
 		const Type type;
+		static const int getCurStencNum()
+		{
+			if (type == QUAD)
+				return MaxStencilNum;
+			else if (type == BORDER)
+				return 2;
+			else
+				return -1;
+		};
+		std::array<int, MaxStencilNum> stencil;
+		std::array<double, MaxStencilNum - 1> trans;
 
 		Element(const Type _type) : type(_type) {};
 		Element(const int _id, const Type _type) : id(_id), type(_type) {};
 	};
-	class Quad : public Element
+	class Quad : public Element<5>
 	{
 	public:
 		Point cent;

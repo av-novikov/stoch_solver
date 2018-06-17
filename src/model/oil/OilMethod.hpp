@@ -14,8 +14,10 @@ namespace oil
 		void solveStep();
 		void writeData();
 
-		std::ofstream plot_P, plot_Q;
+		std::ofstream plot_P, plot_Q, pvd;
 		ParSolver solver;
+		int step_idx;
+		std::array<double, var_size> averVal, averValPrev, dAverVal;
 
 		void computeJac();
 		void fill();
