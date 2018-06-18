@@ -304,3 +304,4 @@ $RECYCLE.BIN/
 *.vtu
 *.vts
 /snaps/*
+*.tap
