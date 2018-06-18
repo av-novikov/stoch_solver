@@ -2,6 +2,7 @@
 
 #include "src/Scene.hpp"
 #include "src/model/oil/OilMethod.hpp"
+#include "src/model/stoch_oil/StochOilMethod.hpp"
 
 using namespace std;
 
@@ -15,11 +16,12 @@ namespace issues
 	};
 
 	struct Oil : public Issue<oil::Oil, oil::OilMethod> {};
+	struct StochOil : public Issue<stoch_oil::StochOil, stoch_oil::StochOilMethod> {};
 }
 
 int main()
 {
-	oil::Properties props;
+	stoch_oil::Properties props;
 	
 	props.t_dim = 3600.0;
 	props.ht = props.ht_min = 1000.0;
@@ -32,6 +34,7 @@ int main()
 	props.props_sk.p_init = props.props_sk.p_out = 100.0 * BAR_TO_PA;
 	props.props_sk.perm = 100.0;
 	props.props_sk.m = 0.1;
+	props.props_sk.beta = 4.E-10;
 
 	props.props_oil.visc = 1.0;
 	props.props_oil.rho_stc = 887.261;
@@ -49,7 +52,7 @@ int main()
 	well.leftBoundIsRate[0] = true;
 	well.rw = 0.1;
 
-	Scene<issues::Oil> scene;
+	Scene<issues::StochOil> scene;
 	scene.load(props);
 	scene.start();
 

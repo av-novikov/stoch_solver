@@ -57,6 +57,7 @@ void Oil::makeDimLess()
 	props_sk.p_init /= P_dim;
 	props_sk.p_out /= P_dim;
 	props_sk.perm /= R_dim * R_dim;
+	props_sk.beta /= (1.0 / P_dim);
 
 	for (auto& well : wells)
 	{

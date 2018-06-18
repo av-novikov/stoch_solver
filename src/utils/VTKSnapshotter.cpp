@@ -16,9 +16,10 @@
 #include <vtkHexahedron.h>
 
 #include "src/utils/VTKSnapshotter.hpp"
+#include "src/utils/utils.h"
 
 #include "src/model/oil/Oil.hpp"
-#include "src/utils/utils.h"
+#include "src/model/stoch_oil/StochOil.hpp"
 
 using namespace std;
 using namespace snapshotter;
@@ -33,6 +34,13 @@ VTKSnapshotter<oil::Oil>::VTKSnapshotter(const oil::Oil* _model) : model(_model)
 {
 	R_dim = model->R_dim;
 	pattern = prefix + "Oil_%{STEP}.vtu";
+
+	num_x = mesh->num_x;	num_y = mesh->num_y;
+}
+VTKSnapshotter<stoch_oil::StochOil>::VTKSnapshotter(const stoch_oil::StochOil* _model) : model(_model), mesh(_model->getMesh())
+{
+	R_dim = model->R_dim;
+	pattern = prefix + "StochOil_%{STEP}.vtu";
 
 	num_x = mesh->num_x;	num_y = mesh->num_y;
 }
@@ -113,5 +121,71 @@ void VTKSnapshotter<oil::Oil>::dump(const int snap_idx)
 	writer->SetInputData(grid);
 	writer->Write();
 }
+void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
+{
+	using namespace stoch_oil;
+	auto grid = vtkSmartPointer<vtkUnstructuredGrid>::New();
+	auto points = vtkSmartPointer<vtkPoints>::New();
+	auto cells = vtkSmartPointer<vtkCellArray>::New();
+	auto p0 = vtkSmartPointer<vtkDoubleArray>::New();
+	p0->SetName("p0");
+	auto p2 = vtkSmartPointer<vtkDoubleArray>::New();
+	p2->SetName("p2");
+	auto Cfp = vtkSmartPointer<vtkDoubleArray>::New();
+	Cfp->SetName("Cfp");
+	auto Cp = vtkSmartPointer<vtkDoubleArray>::New();
+	Cp->SetName("Cp");
+
+	points->Allocate((num_x + 1) * (num_y + 1));
+	cells->Allocate(num_x * num_y);
+	double hx = mesh->hx / (double)num_x;
+	double hy = mesh->hy / (double)num_y;
+
+	for (int i = 0; i < num_x + 1; i++)
+		for (int j = 0; j < num_y + 1; j++)
+		{
+			const Cell& cell = mesh->cells[(num_y + 2) * i + j];
+			points->InsertNextPoint(R_dim * (cell.cent.x + cell.hx / 2), R_dim * (cell.cent.y + cell.hy / 2), 0.0);
+		}
+	grid->SetPoints(points);
+
+	size_t x_ind, y_ind;
+	for (const auto& cell : mesh->cells)
+	{
+		if (cell.type == elem::QUAD)
+		{
+			x_ind = cell.id / (num_y + 2) - 1;
+			y_ind = cell.id % (num_y + 2) - 1;
+
+			vtkSmartPointer<vtkQuad> quad = vtkSmartPointer<vtkQuad>::New();
+			quad->GetPointIds()->SetId(0, y_ind + x_ind * (num_y + 1));
+			quad->GetPointIds()->SetId(1, y_ind + x_ind * (num_y + 1) + 1);
+			quad->GetPointIds()->SetId(2, y_ind + (x_ind + 1) * (num_y + 1) + 1);
+			quad->GetPointIds()->SetId(3, y_ind + (x_ind + 1) * (num_y + 1));
+			cells->InsertNextCell(quad);
+
+			const auto& var0 = (*model)[cell.id].u_next0;
+			const auto& var1 = (*model)[cell.id].u_next1;
+			const auto& var2 = (*model)[cell.id].u_next2;
+			p0->InsertNextValue(var0.p0 * model->P_dim / BAR_TO_PA);
+			p2->InsertNextValue(var1.p2 * model->P_dim / BAR_TO_PA);
+			Cfp->InsertNextValue(var1.Cfp);
+			Cp->InsertNextValue(var2.Cp);
+		}
+	}
+	grid->SetCells(VTK_QUAD, cells);
+
+	vtkCellData* fd = grid->GetCellData();
+	fd->AddArray(p0);
+	fd->AddArray(p2);
+	fd->AddArray(Cfp);
+	fd->AddArray(Cp);
+
+	auto writer = vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
+	writer->SetFileName(getFileName(snap_idx).c_str());
+	writer->SetInputData(grid);
+	writer->Write();
+}
 
 template class VTKSnapshotter<oil::Oil>;
+template class VTKSnapshotter<stoch_oil::StochOil>;

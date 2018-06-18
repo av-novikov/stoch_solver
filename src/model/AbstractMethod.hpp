@@ -18,9 +18,6 @@ protected:
 	double t_dim;
 	const size_t size;
 
-	double** jac;
-	double* y;
-
 	Model* model;
 	Mesh* mesh;
 
@@ -100,6 +97,8 @@ protected:
 		}
 	};
 
+	double** jac;
+	double* y;
 	int* ind_i;
 	int* ind_j;
 	double* a;
@@ -116,10 +115,9 @@ public:
 	AbstractMethod(modelType* _model);
 	virtual ~AbstractMethod();
 
-	virtual void fill() = 0;
+	virtual void fill() {};
 	void fillIndices()
 	{
-
 		int counter = 0;
 
 		for (int i = 0; i < model->varNum; i++)

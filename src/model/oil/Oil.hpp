@@ -1,3 +1,6 @@
+#ifndef OIL_HPP_
+#define OIL_HPP_
+
 #include "src/model/AbstractModel.hpp"
 #include "src/grid/Variables.hpp"
 #include "src/grid/RectangularUniformGrid.hpp"
@@ -7,7 +10,7 @@
 namespace oil
 {
 	typedef var::containers::TapeVar1Phase TapeVariable;
-	class Oil : public AbstractModel<var::containers::Var1phase, Properties, var::BasicVariables, mesh::RectangularUniformGrid, Oil>
+	class Oil : public AbstractModel<Properties, mesh::RectangularUniformGrid,Oil,var::BasicVariables,var::containers::Var1phase>
 	{
 		template<typename> friend class snapshotter::VTKSnapshotter;
 		template<typename> friend class AbstractMethod;
@@ -23,13 +26,21 @@ namespace oil
 		Oil_Props props_oil;
 		std::vector<Well> wells;
 
-		double getPoro(const Cell& cell) const
+		inline double getPoro(const Cell& cell) const
 		{
 			return props_sk.m;
 		};
-		double getPerm(const Cell& cell) const
+		inline double getPerm(const Cell& cell) const
 		{
 			return props_sk.perm;
+		};
+		inline double getFavg(const Cell& cell) const
+		{
+			return log(getPerm(cell) / props_oil.visc);
+		};
+		inline double getKg(const Cell& cell) const
+		{
+			return exp(getFavg(cell));
 		};
 
 		adouble solveInner(const Cell& cell) const;
@@ -44,3 +55,5 @@ namespace oil
 		double getPwf(const Well& well) const;
 	};
 };
+
+#endif /* OIL_HPP_ */
