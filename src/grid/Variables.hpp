@@ -26,28 +26,40 @@ namespace var
 
 		struct StochVar1phase1
 		{
-			static const int size = 2;
-			double& p2;
+			static const int size = 1;
 			double& Cfp;
 
-			StochVar1phase1(double* data) : p2(data[0]), Cfp(data[1]) {};
-			StochVar1phase1(const double* data) : p2(const_cast<double&>(data[0])), Cfp(const_cast<double&>(data[1])) {};
-		};
-		struct TapeStochVar1Phase1
-		{
-			static const int size = 2;
-			adouble p2;
-			adouble Cfp;
+			StochVar1phase1(double* data) : Cfp(data[0]) {};
+			StochVar1phase1(const double* data) : Cfp(const_cast<double&>(data[0])) {};
 		};
 		struct StochVar1phase2
 		{
 			static const int size = 1;
+			double& p2;
+
+			StochVar1phase2(double* data) : p2(data[0]) {};
+			StochVar1phase2(const double* data) : p2(const_cast<double&>(data[0])) {};
+		};
+		struct StochVar1phase3
+		{
+			static const int size = 1;
 			double& Cp;
 
-			StochVar1phase2(double* data) : Cp(data[0]) {};
-			StochVar1phase2(const double* data) : Cp(const_cast<double&>(data[0])) {};
+			StochVar1phase3(double* data) : Cp(data[0]) {};
+			StochVar1phase3(const double* data) : Cp(const_cast<double&>(data[0])) {};
+		};
+
+		struct TapeStochVar1Phase1
+		{
+			static const int size = 1;
+			adouble Cfp;
 		};
 		struct TapeStochVar1Phase2
+		{
+			static const int size = 1;
+			adouble p2;
+		};
+		struct TapeStochVar1Phase3
 		{
 			static const int size = 1;
 			adouble Cp;
@@ -76,35 +88,41 @@ namespace var
 		};
 	};
 
-
-	template <typename TVariable0, typename TVariable1, typename TVariable2>
+	template <typename TVariable0, typename TVariable1, typename TVariable2, typename TVariables3>
 	struct StochVarWrapper
 	{
 		TVariable0 u_prev0, u_iter0, u_next0;
 		TVariable1 u_prev1, u_iter1, u_next1;
 		TVariable2 u_prev2, u_iter2, u_next2;
+		TVariable3 u_prev3, u_iter3, u_next3;
 	};
-	template <typename TVariable0, typename TVariable1, typename TVariable2>
+	template <typename TVariable0, typename TVariable1, typename TVariable2, typename TVariables3>
 	struct StochVariables
 	{
 		static const int size0 = TVariable0::size;
 		static const int size1 = TVariable1::size;
 		static const int size2 = TVariable2::size;
+		static const int size3 = TVariable3::size;
 
-		typedef StochVarWrapper<TVariable0, TVariable1, TVariable2> Wrap;
-		std::valarray<double> u_prev0, u_iter0, u_next0, u_prev1, u_iter1, u_next1, u_prev2, u_iter2, u_next2;
+		typedef StochVarWrapper<TVariable0, TVariable1, TVariable2, TVariable3> Wrap;
+		std::valarray<double> u_prev0, u_iter0, u_next0, 
+								u_prev1, u_iter1, u_next1, 
+									u_prev2, u_iter2, u_next2,
+										u_prev3, u_iter3, u_next3;
 
 		Wrap operator[](const size_t idx)
 		{
 			return{ TVariable0(&u_prev0[idx * size0]), TVariable0(&u_iter0[idx * size0]), TVariable0(&u_next0[idx * size0]),
 					TVariable1(&u_prev1[idx * size1]), TVariable1(&u_iter1[idx * size1]), TVariable1(&u_next1[idx * size1]),
-					TVariable2(&u_prev2[idx * size2]), TVariable2(&u_iter2[idx * size2]), TVariable2(&u_next2[idx * size2]) };
+					TVariable2(&u_prev2[idx * size2]), TVariable2(&u_iter2[idx * size2]), TVariable2(&u_next2[idx * size2]),
+					TVariable3(&u_prev3[idx * size3]), TVariable3(&u_iter3[idx * size3]), TVariable3(&u_next3[idx * size3]) };
 		};
 		Wrap operator[](const size_t idx) const
 		{
 			return{ TVariable0(&u_prev0[idx * size0]), TVariable0(&u_iter0[idx * size0]), TVariable0(&u_next0[idx * size0]),
 					TVariable1(&u_prev1[idx * size1]), TVariable1(&u_iter1[idx * size1]), TVariable1(&u_next1[idx * size1]),
-					TVariable2(&u_prev2[idx * size2]), TVariable2(&u_iter2[idx * size2]), TVariable2(&u_next2[idx * size2]) };
+					TVariable2(&u_prev2[idx * size2]), TVariable2(&u_iter2[idx * size2]), TVariable2(&u_next2[idx * size2]),
+					TVariable3(&u_prev3[idx * size3]), TVariable3(&u_iter3[idx * size3]), TVariable3(&u_next3[idx * size3]) };
 		};
 	};
 }
