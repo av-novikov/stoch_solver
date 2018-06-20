@@ -28,7 +28,7 @@ int main()
 	props.ht_max = 1000000.0;
 
 	props.hx = props.hy = props.R_dim = 100.0;		props.hz = 1.0;
-	props.num_x = props.num_y = 100;
+	props.num_x = props.num_y = 20;
 	size_t num = (props.num_x + 2) * (props.num_y + 2);
 
 	props.props_sk.p_init = props.props_sk.p_out = 100.0 * BAR_TO_PA;

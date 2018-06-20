@@ -131,10 +131,10 @@ void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
 	p0->SetName("p0");
 	auto p2 = vtkSmartPointer<vtkDoubleArray>::New();
 	p2->SetName("p2");
-	auto Cfp = vtkSmartPointer<vtkDoubleArray>::New();
-	Cfp->SetName("Cfp");
-	auto Cp = vtkSmartPointer<vtkDoubleArray>::New();
-	Cp->SetName("Cp");
+	//auto Cfp = vtkSmartPointer<vtkDoubleArray>::New();
+	//Cfp->SetName("Cfp");
+	//auto Cp = vtkSmartPointer<vtkDoubleArray>::New();
+	//Cp->SetName("Cp");
 
 	points->Allocate((num_x + 1) * (num_y + 1));
 	cells->Allocate(num_x * num_y);
@@ -164,13 +164,10 @@ void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
 			quad->GetPointIds()->SetId(3, y_ind + (x_ind + 1) * (num_y + 1));
 			cells->InsertNextCell(quad);
 
-			const auto& var0 = (*model)[cell.id].u_next0;
-			const auto& var1 = (*model)[cell.id].u_next1;
-			const auto& var2 = (*model)[cell.id].u_next2;
-			p0->InsertNextValue(var0.p0 * model->P_dim / BAR_TO_PA);
-			p2->InsertNextValue(var1.p2 * model->P_dim / BAR_TO_PA);
-			Cfp->InsertNextValue(var1.Cfp);
-			Cp->InsertNextValue(var2.Cp);
+			p0->InsertNextValue(model->p0_next[cell.id] * model->P_dim / BAR_TO_PA);
+			p2->InsertNextValue(model->p2_next[cell.id] * model->P_dim / BAR_TO_PA);
+			//Cfp->InsertNextValue(var1.Cfp);
+			//Cp->InsertNextValue(var2.Cp);
 		}
 	}
 	grid->SetCells(VTK_QUAD, cells);
@@ -178,8 +175,8 @@ void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
 	vtkCellData* fd = grid->GetCellData();
 	fd->AddArray(p0);
 	fd->AddArray(p2);
-	fd->AddArray(Cfp);
-	fd->AddArray(Cp);
+	//fd->AddArray(Cfp);
+	//fd->AddArray(Cp);
 
 	auto writer = vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
 	writer->SetFileName(getFileName(snap_idx).c_str());

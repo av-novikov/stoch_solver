@@ -19,28 +19,28 @@ namespace stoch_oil
 		int step_idx;
 		std::array<double, var_size> averVal, averValPrev, dAverVal;
 
-		static const int var_size0 = 1;
-		double** jac0;
-		double* y0;
-		int* ind_i0;
-		int* ind_j0;
-		double* a0;
-		int* ind_rhs0;
-		double* rhs0;
-		int* cols0;
+		static const int var_size = 1;
+		double** jac_p0;
+		double* y_p0;
+		int* ind_i_p0;
+		int* ind_j_p0;
+		double* a_p0;
+		int* ind_rhs_p0;
+		double* rhs_p0;
+		int* cols_p0;
 		// Number of non-zero elements in sparse matrix
-		int elemNum0;
-		static const int var_size1 = 2;
-		double** jac1;
-		double* y1;
-		int* ind_i1;
-		int* ind_j1;
-		double* a1;
-		int* ind_rhs1;
-		double* rhs1;
-		int* cols1;
+		int elemNum_p0;
+
+		double** jac_Cfp;
+		double* y_Cfp;
+		int* ind_i_Cfp;
+		int* ind_j_Cfp;
+		double* a_Cfp;
+		int* ind_rhs_Cfp;
+		double* rhs_Cfp;
+		int* cols_Cfp;
 		// Number of non-zero elements in sparse matrix
-		int elemNum1;
+		int elemNum_Cfp;
 
 		void computeJac0();
 		void computeJac1();

@@ -16,22 +16,15 @@
 template <typename propsType,
 			class MeshType,
 			class modelType,
-			template <typename,
-						typename=var::containers::DummyStruct,
-						typename=var::containers::DummyStruct> class TVariables,
-			typename TVarContainer0,
-			typename TVarContainer1=var::containers::DummyStruct,
-			typename TVarContainer2=var::containers::DummyStruct>
-class AbstractModel : public TVariables<TVarContainer0, TVarContainer1, TVarContainer2>
+			template <typename TVarContainer> class TVariables,
+			typename TVarContainer>
+class AbstractModel : public TVariables<TVarContainer>
 {
 	template<typename> friend class snapshotter::VTKSnapshotter;
 	template<typename> friend class AbstractMethod;
 public:
-	typedef TVarContainer0 VarContainer;
-	typedef TVarContainer0 VarContainer0;
-	typedef TVarContainer1 VarContainer1;
-	typedef TVarContainer2 VarContainer2;
-	typedef TVariables<TVarContainer0, TVarContainer1, TVarContainer2> Variables;
+	typedef TVarContainer VarContainer;
+	typedef TVariables<TVarContainer> Variables;
 	typedef MeshType Mesh;
 	typename typedef Mesh::Cell Cell;
 	typedef propsType Properties;

@@ -9,11 +9,12 @@
 
 namespace stoch_oil
 {
-	typedef var::containers::TapeVar1Phase TapeVariable0;
+	/*typedef var::containers::TapeVar1Phase TapeVariable0;
 	typedef var::containers::TapeStochVar1Phase1 TapeVariable1;
 	typedef var::containers::TapeStochVar1Phase2 TapeVariable2;
+	typedef var::containers::TapeStochVar1Phase3 TapeVariable3;*/
 	class StochOil : public AbstractModel<Properties,mesh::RectangularUniformGrid,StochOil,var::StochVariables,
-				var::containers::Var1phase,var::containers::StochVar1phase1, var::containers::StochVar1phase2>
+				var::containers::Var1phase>
 	{
 		template<typename> friend class snapshotter::VTKSnapshotter;
 		template<typename> friend class AbstractMethod;
@@ -24,16 +25,15 @@ namespace stoch_oil
 		void makeDimLess();
 		void setInitialState();
 
-		static const int var_size0 = VarContainer0::size;
-		static const int var_size1 = VarContainer1::size;
-		static const int var_size2 = VarContainer2::size;
+		adouble* x_p0;
+		adouble* x_Cfp;
+		adouble* x_p2;
+		adouble* x_Cp;
 
-		TapeVariable0* x0;
-		TapeVariable1* x1;
-		TapeVariable2* x2;
-		adouble* h0;
-		adouble* h1;
-		adouble* h2;
+		adouble* h_p0;
+		adouble* h_Cfp;
+		adouble* h_p2;
+		adouble* h_Cp;
 
 		Skeleton_Props props_sk;
 		Oil_Props props_oil;
@@ -60,13 +60,13 @@ namespace stoch_oil
 			return getPoro(cell) * props_oil.beta + props_sk.beta;
 		};
 
-		TapeVariable0 solveInner0(const Cell& cell) const;
-		TapeVariable0 solveBorder0(const Cell& cell) const;
-		TapeVariable0 solveSource0(const Well& cell) const;
+		adouble solveInner0(const Cell& cell) const;
+		adouble solveBorder0(const Cell& cell) const;
+		adouble solveSource0(const Well& cell) const;
 
-		TapeVariable1 solveInner1(const Cell& cell) const;
-		TapeVariable1 solveBorder1(const Cell& cell) const;
-		TapeVariable1 solveSource1(const Well& cell) const;
+		adouble solveInner1(const Cell& cell) const;
+		adouble solveBorder1(const Cell& cell) const;
+		adouble solveSource1(const Well& cell) const;
 	public:
 		StochOil();
 		~StochOil();

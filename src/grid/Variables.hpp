@@ -71,7 +71,7 @@ namespace var
 	{
 		TVariable u_prev, u_iter, u_next;
 	};
-	template <typename TVariable, typename=var::containers::DummyStruct, typename=var::containers::DummyStruct>
+	template <typename TVariable>
 	struct BasicVariables
 	{
 		static const int size = TVariable::size;
@@ -88,29 +88,25 @@ namespace var
 		};
 	};
 
-	template <typename TVariable0, typename TVariable1, typename TVariable2, typename TVariables3>
+	/*template <typename TVariable>
 	struct StochVarWrapper
 	{
 		TVariable0 u_prev0, u_iter0, u_next0;
 		TVariable1 u_prev1, u_iter1, u_next1;
 		TVariable2 u_prev2, u_iter2, u_next2;
 		TVariable3 u_prev3, u_iter3, u_next3;
-	};
-	template <typename TVariable0, typename TVariable1, typename TVariable2, typename TVariables3>
+	};*/
+	template <typename TVariable>
 	struct StochVariables
 	{
-		static const int size0 = TVariable0::size;
-		static const int size1 = TVariable1::size;
-		static const int size2 = TVariable2::size;
-		static const int size3 = TVariable3::size;
+		static const int size0 = TVariable::size;
 
-		typedef StochVarWrapper<TVariable0, TVariable1, TVariable2, TVariable3> Wrap;
-		std::valarray<double> u_prev0, u_iter0, u_next0, 
-								u_prev1, u_iter1, u_next1, 
-									u_prev2, u_iter2, u_next2,
-										u_prev3, u_iter3, u_next3;
-
-		Wrap operator[](const size_t idx)
+		//typedef StochVarWrapper<TVariable0,TVariable1,TVariable2,TVariable3> Wrap;
+		std::valarray<double> p0_prev, p0_iter, p0_next, 
+								Cfp_prev, Cfp_iter, Cfp_next, 
+									p2_prev, p2_iter, p2_next,
+										Cp_prev, Cp_iter, Cp_next;
+		/*Wrap operator[](const size_t idx)
 		{
 			return{ TVariable0(&u_prev0[idx * size0]), TVariable0(&u_iter0[idx * size0]), TVariable0(&u_next0[idx * size0]),
 					TVariable1(&u_prev1[idx * size1]), TVariable1(&u_iter1[idx * size1]), TVariable1(&u_next1[idx * size1]),
@@ -123,7 +119,7 @@ namespace var
 					TVariable1(&u_prev1[idx * size1]), TVariable1(&u_iter1[idx * size1]), TVariable1(&u_next1[idx * size1]),
 					TVariable2(&u_prev2[idx * size2]), TVariable2(&u_iter2[idx * size2]), TVariable2(&u_next2[idx * size2]),
 					TVariable3(&u_prev3[idx * size3]), TVariable3(&u_iter3[idx * size3]), TVariable3(&u_next3[idx * size3]) };
-		};
+		};*/
 	};
 }
 

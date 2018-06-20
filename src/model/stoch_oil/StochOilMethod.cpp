@@ -10,23 +10,23 @@ using namespace stoch_oil;
 
 StochOilMethod::StochOilMethod(Model* _model) : AbstractMethod<Model>(_model)
 {
-	const int strNum0 = var_size0 * model->cellsNum;
-	y0 = new double[strNum0];
-	ind_i0 = new int[Mesh::stencil * var_size0 * strNum0];
-	ind_j0 = new int[Mesh::stencil * var_size0 * strNum0];
+	const int strNum0 = model->cellsNum;
+	y_p0 = new double[strNum0];
+	ind_i_p0 = new int[Mesh::stencil * strNum0];
+	ind_j_p0 = new int[Mesh::stencil * strNum0];
 	//cols = new int[strNum];
-	a0 = new double[Mesh::stencil * var_size0 * strNum0];
-	ind_rhs0 = new int[strNum0];
-	rhs0 = new double[strNum0];
+	a_p0 = new double[Mesh::stencil * strNum0];
+	ind_rhs_p0 = new int[strNum0];
+	rhs_p0 = new double[strNum0];
 
-	const int strNum1 = var_size1 * model->cellsNum;
-	y1 = new double[strNum1];
-	ind_i1 = new int[Mesh::stencil * var_size1 * strNum1];
-	ind_j1 = new int[Mesh::stencil * var_size1 * strNum1];
+	const int strNum1 = model->cellsNum * model->cellsNum;
+	y_Cfp = new double[strNum1];
+	ind_i_Cfp = new int[Mesh::stencil * strNum1];
+	ind_j_Cfp = new int[Mesh::stencil * strNum1];
 	//cols = new int[strNum];
-	a1 = new double[Mesh::stencil * var_size1 * strNum1];
-	ind_rhs1 = new int[strNum1];
-	rhs1 = new double[strNum1];
+	a_Cfp = new double[Mesh::stencil * strNum1];
+	ind_rhs_Cfp = new int[strNum1];
+	rhs_Cfp = new double[strNum1];
 
 	//options[0] = 0;          /* sparsity pattern by index domains (default) */
 	//options[1] = 0;          /*                         safe mode (default) */
@@ -42,16 +42,16 @@ StochOilMethod::StochOilMethod(Model* _model) : AbstractMethod<Model>(_model)
 };
 StochOilMethod::~StochOilMethod()
 {
-	delete[] y0, y1;
+	delete[] y_p0, y_Cfp;
 	//for (int i = 0; i < Model::var_size * size; i++)
 	//	delete[] jac[i];
 	//delete[] jac;
 
-	delete[] ind_i0, ind_j0, ind_rhs0;
-	delete[] a0, rhs0;
+	delete[] ind_i_p0, ind_j_p0, ind_rhs_p0;
+	delete[] a_p0, rhs_p0;
 
-	delete[] ind_i1, ind_j1, ind_rhs1;
-	delete[] a1, rhs1;
+	delete[] ind_i_Cfp, ind_j_Cfp, ind_rhs_Cfp;
+	delete[] a_Cfp, rhs_Cfp;
 
 	plot_P.close();
 	plot_Q.close();
@@ -109,18 +109,18 @@ void StochOilMethod::fillIndices0()
 		auto& cell = mesh->cells[i];
 		getMatrixStencil(cell);
 
-		for (size_t i = 0; i < var_size0; i++)
+		for (size_t i = 0; i < var_size; i++)
 			for (const int idx : cell.stencil)
-				for (size_t j = 0; j < var_size0; j++)
+				for (size_t j = 0; j < var_size; j++)
 				{
-					ind_i0[counter] = var_size0 * cell.id + i;			ind_j0[counter++] = var_size0 * idx + j;
+					ind_i_p0[counter] = var_size * cell.id + i;			ind_j_p0[counter++] = var_size * idx + j;
 				}
 	}
 
-	elemNum0 = counter;
+	elemNum_p0 = counter;
 
-	for (int i = 0; i < var_size0 * model->cellsNum; i++)
-		ind_rhs0[i] = i;
+	for (int i = 0; i < var_size * model->cellsNum; i++)
+		ind_rhs_p0[i] = i;
 };
 void StochOilMethod::fillIndices1()
 {
@@ -131,27 +131,27 @@ void StochOilMethod::fillIndices1()
 		auto& cell = mesh->cells[i];
 		getMatrixStencil(cell);
 
-		for (size_t i = 0; i < var_size1; i++)
+		for (size_t i = 0; i < var_size; i++)
 			for (const int idx : cell.stencil)
-				for (size_t j = 0; j < var_size1; j++)
+				for (size_t j = 0; j < var_size; j++)
 				{
-					ind_i1[counter] = var_size1 * cell.id + i;			ind_j1[counter++] = var_size1 * idx + j;
+					ind_i_Cfp[counter] = var_size * cell.id + i;			ind_j_Cfp[counter++] = var_size * idx + j;
 				}
 	}
 
-	elemNum1 = counter;
+	elemNum_Cfp = counter;
 
-	for (int i = 0; i < var_size1 * model->cellsNum; i++)
-		ind_rhs1[i] = i;
+	for (int i = 0; i < var_size * model->cellsNum; i++)
+		ind_rhs_Cfp[i] = i;
 };
 void StochOilMethod::start()
 {
 	step_idx = 0;
 
 	fillIndices0();
-	solver0.Init(var_size0 * model->cellsNum, 1.e-15, 1.e-15);
+	solver0.Init(var_size * model->cellsNum, 1.e-15, 1.e-15);
 	fillIndices1();
-	solver1.Init(var_size1 * model->cellsNum, 1.e-15, 1.e-15);
+	solver1.Init(var_size * model->cellsNum * model->cellsNum, 1.e-15, 1.e-15);
 
 	model->setPeriod(curTimePeriod);
 	while (cur_t < Tt)
@@ -181,13 +181,13 @@ void StochOilMethod::solveStep()
 		copyIterLayer();
 		computeJac0();
 		fill0();
-		solver0.Assemble(ind_i0, ind_j0, a0, elemNum0, ind_rhs0, rhs0);
+		solver0.Assemble(ind_i_p0, ind_j_p0, a_p0, elemNum_p0, ind_rhs_p0, rhs_p0);
 		solver0.Solve(PRECOND::ILU_SIMPLE);
 		copySolution0(solver0.getSolution());
 
 		err_newton = convergance(cellIdx, varIdx);
 		averValue(averVal);
-		for (int i = 0; i < var_size0; i++)
+		for (int i = 0; i < var_size; i++)
 			dAverVal[i] = fabs(averVal[i] - averValPrev[i]);
 		averValPrev = averVal;
 
@@ -205,45 +205,36 @@ void StochOilMethod::solveStep()
 void StochOilMethod::copySolution0(const paralution::LocalVector<double>& sol)
 {
 	for (int i = 0; i < size; i++)
-	{
-		auto& var = (*model)[i].u_next0;
-		var.p0 += sol[Model::var_size0 * i];
-	}
+		model->p0_next[i] += sol[i];
 }
 void StochOilMethod::copySolution1(const paralution::LocalVector<double>& sol)
 {
-	for (int i = 0; i < size; i++)
-	{
-		auto& var = (*model)[i].u_next1;
-		var.p2 += sol[Model::var_size1 * i];
-		var.Cfp += sol[Model::var_size1 * i + 1];
-	}
+	for (int i = 0; i < size * size; i++)
+		model->Cfp_next[i] += sol[i];
 }
 void StochOilMethod::computeJac0()
 {
 	trace_on(0);
 
 	for (size_t i = 0; i < size; i++)
-		model->x0[i].p0 <<= model->u_next0[i * var_size0];
+		model->x_p0[i] <<= model->p0_next[i * var_size];
 
 	for (int i = 0; i < size; i++)
 	{
 		const auto& cell = mesh->cells[i];
 
 		if (cell.type == elem::QUAD)
-			model->h0[i * var_size0] = model->solveInner0(cell).p0;
+			model->h_p0[i * var_size] = model->solveInner0(cell);
 		else if (cell.type == elem::BORDER)
-			model->h0[i * var_size0] = model->solveBorder0(cell).p0;
+			model->h_p0[i * var_size] = model->solveBorder0(cell);
 	}
 
 	for (const auto& well : model->wells)
-	{
 		if (well.cur_bound)
-			model->h0[well.cell_id * var_size0] += model->solveSource0(well).p0;
-	}
+			model->h_p0[well.cell_id * var_size] += model->solveSource0(well);
 
-	for (int i = 0; i < var_size0 * size; i++)
-		model->h0[i] >>= y0[i];
+	for (int i = 0; i < var_size * size; i++)
+		model->h_p0[i] >>= y_p0[i];
 
 	trace_off();
 }
@@ -251,90 +242,49 @@ void StochOilMethod::computeJac1()
 {
 	trace_on(1);
 
-	for (size_t i = 0; i < size; i++)
-	{
-		model->x1[i].p2 <<= model->u_next1[i * var_size1];
-		model->x1[i].Cfp <<= model->u_next1[i * var_size1 + 1];
-	}
+	for (size_t i = 0; i < size * size; i++)
+		model->x_Cfp[i] <<= model->Cfp_next[i * var_size];
 
-	for (int i = 0; i < size; i++)
+	for (int i = 0; i < size * size; i++)
 	{
 		const auto& cell = mesh->cells[i];
 
 		if (cell.type == elem::QUAD)
-		{
-			const auto& system = model->solveInner1(cell);
-			model->h1[i * var_size1] = system.p2;
-			model->h1[i * var_size1 + 1] = system.Cfp;
-		}
+			model->h_Cfp[i * var_size] = model->solveInner1(cell);
 		else if (cell.type == elem::BORDER)
-		{
-			const auto& system = model->solveBorder1(cell);
-			model->h1[i * var_size1] = system.p2;
-			model->h1[i * var_size1 + 1] = system.Cfp;
-		}
+			model->h_Cfp[i * var_size] = model->solveBorder1(cell);
 	}
 
 	for (const auto& well : model->wells)
-	{
 		if (well.cur_bound)
-		{
-			const auto& system = model->solveSource1(well);
-			model->h1[well.cell_id * var_size1] += system.p2;
-			model->h1[well.cell_id * var_size1 + 1] += system.Cfp;
-		}
-	}
+			model->h_Cfp[well.cell_id * var_size] += model->solveSource1(well);
 
-	for (int i = 0; i < var_size1 * size; i++)
-		model->h1[i] >>= y1[i];
+	for (int i = 0; i < size * size; i++)
+		model->h_Cfp[i] >>= y_Cfp[i];
 
 	trace_off();
 }
 void StochOilMethod::fill0()
 {
-	sparse_jac(0, var_size0 * model->cellsNum, var_size0 * model->cellsNum, repeat,
-		&model->u_next0[0], &elemNum0, (unsigned int**)(&ind_i0), (unsigned int**)(&ind_j0), &a0, options);
+	sparse_jac(0, model->cellsNum, model->cellsNum, repeat,
+		&model->p0_next[0], &elemNum_p0, (unsigned int**)(&ind_i_p0), (unsigned int**)(&ind_j_p0), &a_p0, options);
 
 	int counter = 0;
 	for (int j = 0; j < size; j++)
 	{
 		const auto& cell = mesh->cells[j];
-		//getMatrixStencil(cell);
-		for (int i = 0; i < var_size0; i++)
-		{
-			const int str_idx = var_size0 * cell.id + i;
-			/*for (const int idx : stencil_idx)
-			{
-			for (int j = 0; j < Model::var_size; j++)
-			a[counter++] = jac[str_idx][Model::var_size * idx + j];
-			}*/
-
-			rhs0[str_idx] = -y0[str_idx];
-		}
-		//stencil_idx.clear();
+		rhs_p0[cell.id] = -y_p0[cell.id];
 	}
 }
 void StochOilMethod::fill1()
 {
-	sparse_jac(1, var_size1 * model->cellsNum, var_size1 * model->cellsNum, repeat,
-		&model->u_next1[0], &elemNum1, (unsigned int**)(&ind_i1), (unsigned int**)(&ind_j1), &a1, options);
+	sparse_jac(1, model->cellsNum, model->cellsNum, repeat,
+		&model->Cfp_next[0], &elemNum_Cfp, (unsigned int**)(&ind_i_Cfp), (unsigned int**)(&ind_j_Cfp), &a_Cfp, options);
 
 	int counter = 0;
 	for (int j = 0; j < size; j++)
 	{
 		const auto& cell = mesh->cells[j];
-		//getMatrixStencil(cell);
-		for (int i = 0; i < var_size1; i++)
-		{
-			const int str_idx = var_size1 * cell.id + i;
-			/*for (const int idx : stencil_idx)
-			{
-			for (int j = 0; j < Model::var_size; j++)
-			a[counter++] = jac[str_idx][Model::var_size * idx + j];
-			}*/
-
-			rhs1[str_idx] = -y1[str_idx];
-		}
-		//stencil_idx.clear();
+		rhs_Cfp[cell.id] = -y_Cfp[cell.id];
 	}
 }

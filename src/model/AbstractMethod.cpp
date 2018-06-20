@@ -60,15 +60,17 @@ void AbstractMethod<modelType>::copyTimeLayer()
 }
 void AbstractMethod<stoch_oil::StochOil>::copyIterLayer()
 {
-	model->u_iter0 = model->u_next0;
-	model->u_iter1 = model->u_next1;
-	model->u_iter2 = model->u_next2;
+	model->p0_iter = model->p0_next;
+	model->Cfp_iter = model->Cfp_next;
+	model->p2_iter = model->p2_next;
+	model->Cp_iter = model->Cp_next;
 }
 void AbstractMethod<stoch_oil::StochOil>::copyTimeLayer()
 {
-	model->u_prev0 = model->u_iter0 = model->u_next0;
-	model->u_prev1 = model->u_iter1 = model->u_next1;
-	model->u_prev2 = model->u_iter2 = model->u_next2;
+	model->p0_prev = model->p0_iter = model->p0_next;
+	model->Cfp_prev = model->Cfp_iter = model->Cfp_next;
+	model->p2_prev = model->p2_iter = model->p2_next;
+	model->Cp_prev = model->Cp_iter = model->Cp_next;
 }
 
 template <class modelType>
@@ -105,7 +107,7 @@ double AbstractMethod<stoch_oil::StochOil>::convergance(int& ind, int& varInd)
 	double cur_relErr = 0.0;
 
 	varInd = 0;
-	auto diff = std::abs((model->u_next0 - model->u_iter0) / model->u_next0);
+	auto diff = std::abs((model->p0_next - model->p0_iter) / model->p0_next);
 	auto max_iter = std::max_element(std::begin(diff), std::end(diff));
 	ind = std::distance(std::begin(diff), max_iter);
 
@@ -117,7 +119,7 @@ void AbstractMethod<stoch_oil::StochOil>::averValue(std::array<double, var_size>
 
 	for (int i = 0; i < var_size; i++)
 	{
-		const auto var = static_cast<std::valarray<double>>(model->u_next0[std::slice(i, model->cellsNum, var_size)]);
+		const auto var = static_cast<std::valarray<double>>(model->p0_next[std::slice(i, model->cellsNum, var_size)]);
 		int cell_idx = 0;
 		for (const auto& cell : mesh->cells)
 			aver[i] += var[cell_idx++] * cell.V;
