@@ -27,8 +27,6 @@ public:
 		model->load(props);
 		model->setSnapshotter(model.get());
 		method = std::make_shared<Method>(model.get());
-
-		model->snapshot_all(0);
 	}
 	void start()
 	{

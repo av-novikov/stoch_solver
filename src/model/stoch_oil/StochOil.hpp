@@ -57,7 +57,7 @@ namespace stoch_oil
 		};
 		inline double getS(const Cell& cell) const
 		{
-			return getPoro(cell) * props_oil.beta + props_sk.beta;
+			return getPoro(cell) * (props_oil.beta + props_sk.beta);
 		};
 
 		adouble solveInner0(const Cell& cell) const;

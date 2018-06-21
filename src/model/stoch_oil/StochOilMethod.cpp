@@ -19,7 +19,7 @@ StochOilMethod::StochOilMethod(Model* _model) : AbstractMethod<Model>(_model)
 	ind_rhs_p0 = new int[strNum0];
 	rhs_p0 = new double[strNum0];
 
-	const int strNum1 = model->cellsNum * model->cellsNum;
+	const int strNum1 = model->cellsNum;
 	y_Cfp = new double[strNum1];
 	ind_i_Cfp = new int[Mesh::stencil * strNum1];
 	ind_j_Cfp = new int[Mesh::stencil * strNum1];
@@ -149,9 +149,9 @@ void StochOilMethod::start()
 	step_idx = 0;
 
 	fillIndices0();
-	solver0.Init(var_size * model->cellsNum, 1.e-15, 1.e-15);
+	solver0.Init(model->cellsNum, 1.e-15, 1.e-15);
 	fillIndices1();
-	solver1.Init(var_size * model->cellsNum * model->cellsNum, 1.e-15, 1.e-15);
+	solver1.Init(model->cellsNum, 1.e-15, 1.e-15);
 
 	model->setPeriod(curTimePeriod);
 	while (cur_t < Tt)
@@ -207,9 +207,9 @@ void StochOilMethod::copySolution0(const paralution::LocalVector<double>& sol)
 	for (int i = 0; i < size; i++)
 		model->p0_next[i] += sol[i];
 }
-void StochOilMethod::copySolution1(const paralution::LocalVector<double>& sol)
+void StochOilMethod::copySolution1(const int cell_id, const paralution::LocalVector<double>& sol)
 {
-	for (int i = 0; i < size * size; i++)
+	for (int i = cell_id * size; i < (cell_id + 1) * size; i++)
 		model->Cfp_next[i] += sol[i];
 }
 void StochOilMethod::computeJac0()

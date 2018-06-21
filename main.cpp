@@ -27,12 +27,12 @@ int main()
 	props.ht = props.ht_min = 1000.0;
 	props.ht_max = 1000000.0;
 
-	props.hx = props.hy = props.R_dim = 100.0;		props.hz = 1.0;
-	props.num_x = props.num_y = 20;
+	props.hx = props.hy = props.R_dim = 2100.0;		props.hz = 10.0;
+	props.num_x = props.num_y = 21;
 	size_t num = (props.num_x + 2) * (props.num_y + 2);
 
 	props.props_sk.p_init = props.props_sk.p_out = 100.0 * BAR_TO_PA;
-	props.props_sk.perm = 100.0;
+	props.props_sk.perm = 50.0;
 	props.props_sk.m = 0.1;
 	props.props_sk.beta = 4.E-10;
 
@@ -45,7 +45,7 @@ int main()
 	auto& well = props.wells.back();
 	well.periodsNum = 1;
 	well.period.resize(well.periodsNum);
-	well.period[0] = 100.0 * 3600.0;
+	well.period[0] = 31.0 * 86400.0;
 	well.rate.resize(well.periodsNum);
 	well.rate[0] = 50.0;
 	well.leftBoundIsRate.resize(well.periodsNum);

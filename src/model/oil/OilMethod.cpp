@@ -167,7 +167,7 @@ void OilMethod::computeJac()
 	for (const auto& well : model->wells)
 	{
 		if (well.cur_bound)
-			model->h[well.cell_id] += well.cur_rate * model->props_oil.rho_stc / mesh->hz * model->ht;
+			model->h[well.cell_id] += well.cur_rate * model->props_oil.rho_stc * model->ht / mesh->cells[well.cell_id].V;
 	}
 
 	for (int i = 0; i < Model::var_size * size; i++)

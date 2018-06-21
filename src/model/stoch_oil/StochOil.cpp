@@ -99,8 +99,8 @@ void StochOil::setInitialState()
 	for (size_t i = 0; i < cellsNum; i++)
 	{
 		const auto& cell = mesh->cells[i];
-		p0_prev[i] = p0_iter[i] = p0_iter[i] = props_sk.p_init;
-		p2_prev[i] = p2_iter[i] = p2_iter[i] = 0.0;
+		p0_prev[i] = p0_iter[i] = p0_next[i] = props_sk.p_init;
+		p2_prev[i] = p2_iter[i] = p2_next[i] = 0.0;
 
 		const auto sl = std::slice(i * cellsNum, cellsNum, var_size);
 		for (size_t j = i * cellsNum; j < (i + 1) * cellsNum; j++)
@@ -195,7 +195,7 @@ adouble StochOil::solveBorder0(const Cell& cell) const
 adouble StochOil::solveSource0(const Well& well) const
 {
 	const Cell& cell = mesh->cells[well.cell_id];
-	return well.cur_rate * props_oil.rho_stc / mesh->hz / getKg(cell);
+	return well.cur_rate / cell.V / getKg(cell);
 }
 
 adouble StochOil::solveInner1(const Cell& cell) const

@@ -50,7 +50,7 @@ namespace stoch_oil
 		void fill0();
 		void fill1();
 		void copySolution0(const paralution::LocalVector<double>& sol);
-		void copySolution1(const paralution::LocalVector<double>& sol);
+		void copySolution1(const int cell_id, const paralution::LocalVector<double>& sol);
 	public:
 		StochOilMethod(Model* _model);
 		~StochOilMethod();
