@@ -15,8 +15,10 @@ namespace stoch_oil
 		double m;
 		double p_init;
 		double p_out;
-		double perm;
 		double beta;
+
+		double perm;
+		double sigma_f, l_f;
 	};
 	struct Oil_Props
 	{

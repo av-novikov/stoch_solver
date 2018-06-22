@@ -25,8 +25,8 @@ protected:
 	const double Tt;
 	double cur_t, cur_t_log;
 
-	void copyIterLayer();
-	void copyTimeLayer();
+	virtual void copyIterLayer();
+	virtual void copyTimeLayer();
 
 	double convergance(int& ind, int& varInd);
 	void averValue(std::array<double, var_size>& aver);

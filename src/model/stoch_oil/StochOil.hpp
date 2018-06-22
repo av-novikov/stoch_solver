@@ -59,14 +59,27 @@ namespace stoch_oil
 		{
 			return getPoro(cell) * (props_oil.beta + props_sk.beta);
 		};
+		inline double getCf(const Cell& cell, const Cell& beta) const
+		{
+			auto corrFoo1 = [this](const auto& p1, const auto& p2) -> double
+			{
+				return props_sk.sigma_f * props_sk.sigma_f * exp(-point::distance(p1, p2) / props_sk.l_f);
+			};
+			auto corrFoo2 = [this](const auto& p1, const auto& p2) -> double
+			{
+				const double dist = point::distance(p1, p2) / props_sk.l_f;
+				return props_sk.sigma_f * props_sk.sigma_f * exp(-dist * dist);
+			};
+			return corrFoo1(cell.cent, beta.cent);
+		};
 
 		adouble solveInner0(const Cell& cell) const;
 		adouble solveBorder0(const Cell& cell) const;
-		adouble solveSource0(const Well& cell) const;
+		adouble solveSource0(const Well& well) const;
 
-		adouble solveInner1(const Cell& cell) const;
-		adouble solveBorder1(const Cell& cell) const;
-		adouble solveSource1(const Well& cell) const;
+		adouble solveInner1(const Cell& cur_cell, const Cell& cell) const;
+		adouble solveBorder1(const Cell& cur_cell, const Cell& cell) const;
+		adouble solveSource1(const Well& well, const Cell& cur_cell) const;
 	public:
 		StochOil();
 		~StochOil();

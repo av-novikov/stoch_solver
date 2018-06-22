@@ -35,6 +35,8 @@ int main()
 	props.props_sk.perm = 50.0;
 	props.props_sk.m = 0.1;
 	props.props_sk.beta = 4.E-10;
+	props.props_sk.l_f = 100.0;
+	props.props_sk.sigma_f = 0.5;
 
 	props.props_oil.visc = 1.0;
 	props.props_oil.rho_stc = 887.261;
