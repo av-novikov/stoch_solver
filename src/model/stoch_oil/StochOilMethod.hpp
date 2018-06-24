@@ -11,8 +11,13 @@ namespace stoch_oil
 	{
 	protected:
 		void control();
-		void solveStep();
 		void writeData();
+
+		void solveStep();
+		void solveStep_p0();
+		void solveStep_Cfp();
+		void solveStep_p2();
+		void solveStep_Cp();
 
 		std::ofstream plot_P, plot_Q, pvd;
 		ParSolver solver0, solver1;
@@ -42,14 +47,14 @@ namespace stoch_oil
 		// Number of non-zero elements in sparse matrix
 		int elemNum_Cfp;
 
-		void computeJac0();
-		void computeJac1(const int cell_id);
-		void fillIndices0();
-		void fillIndices1();
-		void fill0();
-		void fill1(const int cell_id);
-		void copySolution0(const paralution::LocalVector<double>& sol);
-		void copySolution1(const int cell_id, const paralution::LocalVector<double>& sol);
+		void computeJac_p0();
+		void computeJac_Cfp(const int cell_id);
+		void fillIndices_p0();
+		void fillIndices_Cfp();
+		void fill_p0();
+		void fill_Cfp(const int cell_id);
+		void copySolution_p0(const paralution::LocalVector<double>& sol);
+		void copySolution_Cfp(const int cell_id, const paralution::LocalVector<double>& sol);
 
 		void copyTimeLayer();
 		void copyIterLayer_p0();
