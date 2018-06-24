@@ -175,7 +175,7 @@ void StochOilMethod::solveStep()
 	double err_newton = 1.0;
 	averValPrev = averValue_p0();
 	
-	iterations = 0;
+	iterations = 0;	err_newton = 1;	dAverVal = 1.0;
 	while (err_newton > 1.e-4 && dAverVal > 1.e-7 && iterations < 20)
 	{
 		copyIterLayer_p0();
@@ -190,16 +190,31 @@ void StochOilMethod::solveStep()
 		dAverVal = fabs(averVal - averValPrev);
 		averValPrev = averVal;
 
-		/*computeJac1();
-		fill1();
-		solver1.Assemble(ind_i1, ind_j1, a1, elemNum1, ind_rhs1, rhs1);
-		solver1.Solve(PRECOND::ILU_SIMPLE);
-		copySolution1(solver1.getSolution());*/
-
 		iterations++;
 	}
+	std::cout << std::endl << "p0 Iterations = " << iterations << std::endl << std::endl;
 
-	std::cout << "Newton Iterations = " << iterations << std::endl;
+	for (const auto& cell : mesh->cells)
+	{
+		iterations = 0;	err_newton = 1;	dAverVal = 1.0;
+		while (err_newton > 1.e-4 && dAverVal > 1.e-7 && iterations < 20)
+		{
+			copyIterLayer_Cfp(cell.id);
+			computeJac1(cell.id);
+			fill1(cell.id);
+			solver1.Assemble(ind_i_Cfp, ind_j_Cfp, a_Cfp, elemNum_Cfp, ind_rhs_Cfp, rhs_Cfp);
+			solver1.Solve(PRECOND::ILU_SIMPLE);
+			copySolution1(cell.id, solver1.getSolution());
+
+			err_newton = convergance(cellIdx, varIdx);
+			averVal = averValue_p0();
+			dAverVal = fabs(averVal - averValPrev);
+			averValPrev = averVal;
+
+			iterations++;
+		}
+		std::cout << std::endl << "Cfp #" << cell.id << " Iterations = " << iterations << std::endl << std::endl;
+	}
 }
 void StochOilMethod::copySolution0(const paralution::LocalVector<double>& sol)
 {
@@ -208,8 +223,8 @@ void StochOilMethod::copySolution0(const paralution::LocalVector<double>& sol)
 }
 void StochOilMethod::copySolution1(const int cell_id, const paralution::LocalVector<double>& sol)
 {
-	for (int i = cell_id * size; i < (cell_id + 1) * size; i++)
-		model->Cfp_next[i] += sol[i];
+	for (int i = 0; i < size; i++)
+		model->Cfp_next[cell_id * size + i] += sol[i];
 }
 void StochOilMethod::computeJac0()
 {
@@ -289,7 +304,6 @@ void StochOilMethod::fill1(const int cell_id)
 	}
 }
 
-
 void StochOilMethod::copyTimeLayer()
 {
 	model->p0_prev = model->p0_iter = model->p0_next;
@@ -299,9 +313,12 @@ void StochOilMethod::copyIterLayer_p0()
 {
 	model->p0_iter = model->p0_next;
 }
-void StochOilMethod::copyIterLayer_Cfp()
+void StochOilMethod::copyIterLayer_Cfp(const int cell_id)
 {
 	model->Cfp_iter = model->Cfp_next;
+
+	for(int i = cell_id * size; i < (cell_id + 1) * size; i++)
+		model->Cfp_iter[i] = model->Cfp_next[i];
 }
 double StochOilMethod::convergance_p0(int& ind, int& varInd)
 {

@@ -201,7 +201,7 @@ adouble StochOil::solveSource0(const Well& well) const
 	return well.cur_rate * ht / cell.V / getKg(cell);
 }
 
-adouble StochOil::solveInner1(const Cell& cur_cell, const Cell& cell) const
+adouble StochOil::solveInner1(const Cell& cell, const Cell& cur_cell) const
 {
 	assert(cell.type == elem::QUAD);
 	const auto& next = x_Cfp[cell.id];

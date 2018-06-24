@@ -77,8 +77,8 @@ namespace stoch_oil
 		adouble solveBorder0(const Cell& cell) const;
 		adouble solveSource0(const Well& well) const;
 
-		adouble solveInner1(const Cell& cur_cell, const Cell& cell) const;
-		adouble solveBorder1(const Cell& cur_cell, const Cell& cell) const;
+		adouble solveInner1(const Cell& cell, const Cell& cur_cell) const;
+		adouble solveBorder1(const Cell& cell, const Cell& cur_cell) const;
 		adouble solveSource1(const Well& well, const Cell& cur_cell) const;
 	public:
 		StochOil();
