@@ -9,6 +9,7 @@
 class Well
 {
 public:
+	size_t id;
 	size_t cell_id;
 	// Number of periods
 	size_t periodsNum;
@@ -27,7 +28,7 @@ public:
 
 	double rw, r_peaceman, WI;
 
-	Well(const size_t _cell_id) : cell_id(_cell_id) {};
+	Well(const size_t _id, const size_t _cell_id) : id(_id), cell_id(_cell_id) {};
 	~Well() {};
 };
 

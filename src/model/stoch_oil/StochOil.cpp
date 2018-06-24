@@ -61,12 +61,9 @@ void StochOil::setProps(const Properties& props)
 	props_oil.visc = cPToPaSec(props_oil.visc);
 
 	wells = props.wells;
-	for (int i = 0; i < wells.back().periodsNum; i++)
-	{
-		auto& well = wells[i];
-		if (well.leftBoundIsRate[i])
-			well.rate[i] /= 86400.0;
-	}
+	for (auto& well : wells)
+		for (auto& rate : well.rate)
+			rate /= 86400;
 
 	makeDimLess();
 }
@@ -125,6 +122,7 @@ void StochOil::setPeriod(const int period)
 {
 	for (auto& well : wells)
 	{
+		well.cur_period = period;
 		well.cur_bound = well.leftBoundIsRate[period];
 		if (well.cur_bound)
 			well.cur_rate = well.rate[period];
