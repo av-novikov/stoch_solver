@@ -25,46 +25,58 @@ namespace stoch_oil
 		double averVal, averValPrev, dAverVal;
 
 		static const int var_size = 1;
-		double** jac_p0;
-		double* y_p0;
-		int* ind_i_p0;
-		int* ind_j_p0;
-		double* a_p0;
-		int* ind_rhs_p0;
-		double* rhs_p0;
-		int* cols_p0;
+		double** jac0;
+		double* y0;
+		int* ind_i0;
+		int* ind_j0;
+		double* a0;
+		int* ind_rhs0;
+		double* rhs0;
+		int* cols0;
 		// Number of non-zero elements in sparse matrix
-		int elemNum_p0;
+		int elemNum0;
 
-		double** jac_Cfp;
-		double* y_Cfp;
-		int* ind_i_Cfp;
-		int* ind_j_Cfp;
-		double* a_Cfp;
-		int* ind_rhs_Cfp;
-		double* rhs_Cfp;
-		int* cols_Cfp;
+		double** jac1;
+		double* y1;
+		int* ind_i1;
+		int* ind_j1;
+		double* a1;
+		int* ind_rhs1;
+		double* rhs1;
+		int* cols1;
 		// Number of non-zero elements in sparse matrix
-		int elemNum_Cfp;
+		int elemNum1;
 
 		void computeJac_p0();
 		void computeJac_Cfp(const int cell_id);
-		void fillIndices_p0();
-		void fillIndices_Cfp();
+		void computeJac_p2();
+		void computeJac_Cp(const int cell_id);
+		void fillIndices0();
+		void fillIndices1();
 		void fill_p0();
 		void fill_Cfp(const int cell_id);
+		void fill_p2();
+		void fill_Cp(const int cell_id);
 		void copySolution_p0(const paralution::LocalVector<double>& sol);
 		void copySolution_Cfp(const int cell_id, const paralution::LocalVector<double>& sol);
+		void copySolution_p2(const paralution::LocalVector<double>& sol);
+		void copySolution_Cp(const int cell_id, const paralution::LocalVector<double>& sol);
 
 		void copyTimeLayer();
 		void copyIterLayer_p0();
 		void copyIterLayer_Cfp(const int cell_id);
+		void copyIterLayer_p2();
+		void copyIterLayer_Cp(const int cell_id);
 
 		double convergance_p0(int& ind, int& varInd);
 		double convergance_Cfp(int& ind, int& varInd, const int cell_id);
+		double convergance_p2(int& ind, int& varInd);
+		double convergance_Cp(int& ind, int& varInd, const int cell_id);
 
 		double averValue_p0() const;
 		double averValue_Cfp(const int cell_id) const;
+		double averValue_p2() const;
+		double averValue_Cp(const int cell_id) const;
 	public:
 		StochOilMethod(Model* _model);
 		~StochOilMethod();

@@ -12,8 +12,7 @@ StochOil::StochOil()
 }
 StochOil::~StochOil()
 {
-	delete[] x_p0, x_Cfp, x_p2, x_Cp;
-	delete[] h_p0, h_Cfp, h_p2, h_Cp;
+	delete[] x, h;
 }
 void StochOil::setProps(const Properties& props)
 {
@@ -39,15 +38,8 @@ void StochOil::setProps(const Properties& props)
 	Cp_iter.resize(var_size * cellsNum * cellsNum);	
 	Cp_next.resize(var_size * cellsNum * cellsNum);
 
-	x_p0 = new adouble[cellsNum];		
-	x_Cfp = new adouble[cellsNum];
-	x_p2 = new adouble[cellsNum];
-	x_Cp = new adouble[cellsNum];
-
-	h_p0 = new adouble[cellsNum]; 
-	h_Cfp = new adouble[cellsNum];
-	h_p2 = new adouble[cellsNum];
-	h_Cp = new adouble[cellsNum];
+	x = new adouble[cellsNum];		
+	h = new adouble[cellsNum]; 
 	Volume = mesh.get()->V;
 
 	ht = props.ht;
@@ -151,11 +143,11 @@ double StochOil::getPwf(const Well& well) const
 		return well.cur_pwf;
 }
 
-adouble StochOil::solveInner0(const Cell& cell) const
+adouble StochOil::solveInner_p0(const Cell& cell) const
 {
 	assert(cell.type == elem::QUAD);
 
-	const auto& next = x_p0[cell.id];
+	const auto& next = x[cell.id];
 	const auto prev = p0_prev[cell.id];
 	
 	adouble H;
@@ -166,10 +158,10 @@ adouble StochOil::solveInner0(const Cell& cell) const
 	const auto& beta_x_minus = mesh->cells[cell.stencil[3]];
 	const auto& beta_x_plus = mesh->cells[cell.stencil[4]];
 
-	const auto& nebr_y_minus = x_p0[cell.stencil[1]];
-	const auto& nebr_y_plus = x_p0[cell.stencil[2]];
-	const auto& nebr_x_minus = x_p0[cell.stencil[3]];
-	const auto& nebr_x_plus = x_p0[cell.stencil[4]];
+	const auto& nebr_y_minus = x[cell.stencil[1]];
+	const auto& nebr_y_plus = x[cell.stencil[2]];
+	const auto& nebr_x_minus = x[cell.stencil[3]];
+	const auto& nebr_x_plus = x[cell.stencil[4]];
 
 	H -= ht * ((nebr_x_plus - next) / (beta_x_plus.cent.x - cell.cent.x) -
 			(next - nebr_x_minus) / (cell.cent.x - beta_x_minus.cent.x)) / cell.hx;
@@ -185,24 +177,24 @@ adouble StochOil::solveInner0(const Cell& cell) const
 
 	return H;
 }
-adouble StochOil::solveBorder0(const Cell& cell) const
+adouble StochOil::solveBorder_p0(const Cell& cell) const
 {
 	assert(cell.type == elem::BORDER);
 
-	const auto& cur = x_p0[cell.id];
-	const auto& nebr = x_p0[cell.stencil[1]];
+	const auto& cur = x[cell.id];
+	const auto& nebr = x[cell.stencil[1]];
 	return (cur - (adouble)(props_sk.p_out)) / P_dim;
 }
-adouble StochOil::solveSource0(const Well& well) const
+adouble StochOil::solveSource_p0(const Well& well) const
 {
 	const Cell& cell = mesh->cells[well.cell_id];
 	return well.cur_rate * ht / cell.V / getKg(cell);
 }
 
-adouble StochOil::solveInner1(const Cell& cell, const Cell& cur_cell) const
+adouble StochOil::solveInner_Cfp(const Cell& cell, const Cell& cur_cell) const
 {
-	assert(cell.type == elem::QUAD);
-	const auto& next = x_Cfp[cell.id];
+	assert(cell.type == elem::QUAD && cur_cell.type == elem::QUAD);
+	const auto& next = x[cell.id];
 	const auto prev = Cfp_prev[cur_cell.id * cellsNum + cell.id];
 
 	adouble H;
@@ -218,10 +210,10 @@ adouble StochOil::solveInner1(const Cell& cell, const Cell& cur_cell) const
 	const auto& beta_x_minus = mesh->cells[x_minus];
 	const auto& beta_x_plus = mesh->cells[x_plus];
 
-	const auto& nebr_y_minus = x_Cfp[y_minus];
-	const auto& nebr_y_plus = x_Cfp[y_plus];
-	const auto& nebr_x_minus = x_Cfp[x_minus];
-	const auto& nebr_x_plus = x_Cfp[x_plus];
+	const auto& nebr_y_minus = x[y_minus];
+	const auto& nebr_y_plus = x[y_plus];
+	const auto& nebr_x_minus = x[x_minus];
+	const auto& nebr_x_plus = x[x_plus];
 
 	H -= ht * ((nebr_x_plus - next) / (beta_x_plus.cent.x - cell.cent.x) -
 		(next - nebr_x_minus) / (cell.cent.x - beta_x_minus.cent.x)) / cell.hx;
@@ -245,13 +237,131 @@ adouble StochOil::solveInner1(const Cell& cell, const Cell& cur_cell) const
 
 	return H + H1 + H2;
 }
-adouble StochOil::solveBorder1(const Cell& cell, const Cell& cur_cell) const
+adouble StochOil::solveBorder_Cfp(const Cell& cell, const Cell& cur_cell) const
 {
-	assert(cell.type == elem::BORDER);
-	return x_Cfp[cell.id];
+	assert(cell.type == elem::BORDER || cur_cell.type == elem::BORDER);
+	return x[cell.id] / P_dim;
 }
-adouble StochOil::solveSource1(const Well& well, const Cell& cur_cell) const
+adouble StochOil::solveSource_Cfp(const Well& well, const Cell& cur_cell) const
 {
 	const Cell& cell = mesh->cells[well.cell_id];
-	return well.cur_rate * ht / cell.V / getKg(cell) * getCf(cur_cell, cell);
+	return -well.cur_rate * ht / cell.V / getKg(cell) * getCf(cur_cell, cell);
 }
+
+adouble StochOil::solveInner_p2(const Cell& cell) const
+{
+	assert(cell.type == elem::QUAD);
+
+	const auto& next = x[cell.id];
+	const auto prev = p2_prev[cell.id];
+
+	adouble H;
+	H = getS(cell) * (next - prev) / getKg(cell);
+
+	const int& y_minus = cell.stencil[1];
+	const int& y_plus = cell.stencil[2];
+	const int& x_minus = cell.stencil[3];
+	const int& x_plus = cell.stencil[4];
+
+	const auto& beta_y_minus = mesh->cells[y_minus];
+	const auto& beta_y_plus = mesh->cells[y_plus];
+	const auto& beta_x_minus = mesh->cells[x_minus];
+	const auto& beta_x_plus = mesh->cells[x_plus];
+
+	const auto& nebr_y_minus = x[y_minus];
+	const auto& nebr_y_plus = x[y_plus];
+	const auto& nebr_x_minus = x[x_minus];
+	const auto& nebr_x_plus = x[x_plus];
+
+	H -= ht * ((nebr_x_plus - next) / (beta_x_plus.cent.x - cell.cent.x) -
+		(next - nebr_x_minus) / (cell.cent.x - beta_x_minus.cent.x)) / cell.hx;
+
+	H -= ht * (getFavg(beta_x_plus) - getFavg(beta_x_minus)) / (beta_x_plus.cent.x - beta_x_minus.cent.x) *
+		(nebr_x_plus - nebr_x_minus) / (beta_x_plus.cent.x - beta_x_minus.cent.x);
+
+	H -= ht * ((nebr_y_plus - next) / (beta_y_plus.cent.y - cell.cent.y) -
+		(next - nebr_y_minus) / (cell.cent.y - beta_y_minus.cent.y)) / cell.hy;
+
+	H -= ht * (getFavg(beta_y_plus) - getFavg(beta_y_minus)) / (beta_y_plus.cent.y - beta_y_minus.cent.y) *
+		(nebr_y_plus - nebr_y_minus) / (beta_y_plus.cent.y - beta_y_minus.cent.y);
+
+	double H1 = -ht * ((Cfp_next[(cell.id + 1) * cellsNum + x_plus] - Cfp_next[(cell.id + 1) * cellsNum + x_minus]) -
+						(Cfp_next[(cell.id - 1) * cellsNum + x_plus] - Cfp_next[(cell.id - 1) * cellsNum + x_minus])) /
+						(beta_x_plus.cent.x - beta_x_minus.cent.x) / (beta_x_plus.cent.x - beta_x_minus.cent.x) - 
+				ht * ((Cfp_next[(cell.id + 1) * cellsNum + y_plus] - Cfp_next[(cell.id + 1) * cellsNum + y_minus]) -
+						(Cfp_next[(cell.id - 1) * cellsNum + y_plus] - Cfp_next[(cell.id - 1) * cellsNum + y_minus])) /
+						(beta_y_plus.cent.y - beta_y_minus.cent.y) / (beta_y_plus.cent.y - beta_y_minus.cent.y);
+
+	const size_t idx = cell.id * cellsNum + cell.id;
+	double H2 = getS(cell) / getKg(cell) * ((p0_next[cell.id] - p0_prev[cell.id]) * getSigmaf(cell) / 2.0 -
+							(Cfp_next[idx] - Cfp_prev[idx]));
+	return H + H1 + H2;
+}
+adouble StochOil::solveBorder_p2(const Cell& cell) const
+{
+	assert(cell.type == elem::BORDER);
+	return x[cell.id] / P_dim;
+}
+adouble StochOil::solveSource_p2(const Well& well) const
+{
+	const Cell& cell = mesh->cells[well.cell_id];
+	return well.cur_rate * ht / cell.V / getKg(cell) * getSigmaf(cell) / 2.0;
+}
+
+adouble StochOil::solveInner_Cp(const Cell& cell, const Cell& cur_cell) const
+{
+	assert(cell.type == elem::QUAD && cur_cell.type == elem::QUAD);
+	const auto& next = x[cell.id];
+	const auto prev = Cp_prev[cur_cell.id * cellsNum + cell.id];
+
+	adouble H;
+	H = getS(cell) * (next - prev) / getKg(cell);
+
+	const int& y_minus = cell.stencil[1];
+	const int& y_plus = cell.stencil[2];
+	const int& x_minus = cell.stencil[3];
+	const int& x_plus = cell.stencil[4];
+
+	const auto& beta_y_minus = mesh->cells[y_minus];
+	const auto& beta_y_plus = mesh->cells[y_plus];
+	const auto& beta_x_minus = mesh->cells[x_minus];
+	const auto& beta_x_plus = mesh->cells[x_plus];
+
+	const auto& nebr_y_minus = x[y_minus];
+	const auto& nebr_y_plus = x[y_plus];
+	const auto& nebr_x_minus = x[x_minus];
+	const auto& nebr_x_plus = x[x_plus];
+
+	H -= ht * ((nebr_x_plus - next) / (beta_x_plus.cent.x - cell.cent.x) -
+		(next - nebr_x_minus) / (cell.cent.x - beta_x_minus.cent.x)) / cell.hx;
+
+	H -= ht * (getFavg(beta_x_plus) - getFavg(beta_x_minus)) / (beta_x_plus.cent.x - beta_x_minus.cent.x) *
+		(nebr_x_plus - nebr_x_minus) / (beta_x_plus.cent.x - beta_x_minus.cent.x);
+
+	H -= ht * ((nebr_y_plus - next) / (beta_y_plus.cent.y - cell.cent.y) -
+		(next - nebr_y_minus) / (cell.cent.y - beta_y_minus.cent.y)) / cell.hy;
+
+	H -= ht * (getFavg(beta_y_plus) - getFavg(beta_y_minus)) / (beta_y_plus.cent.y - beta_y_minus.cent.y) *
+		(nebr_y_plus - nebr_y_minus) / (beta_y_plus.cent.y - beta_y_minus.cent.y);
+
+
+	double H1 = -ht * ((p0_next[x_plus] - p0_next[x_minus]) / (beta_x_plus.cent.x - beta_x_minus.cent.x) *
+		(Cfp_next[]getCf(cur_cell, beta_x_plus) - getCf(cur_cell, beta_x_minus)) / (beta_x_plus.cent.x - beta_x_minus.cent.x) +
+		(p0_next[y_plus] - p0_next[y_minus]) / (beta_y_plus.cent.y - beta_y_minus.cent.y) *
+		(getCf(cur_cell, beta_y_plus) - getCf(cur_cell, beta_y_minus)) / (beta_y_plus.cent.y - beta_y_minus.cent.y));
+
+	double H2 = -getS(cell) / getKg(cell) * (p0_next[cell.id] - p0_prev[cell.id]) * getCf(cur_cell, cell);
+
+	return H + H1 + H2;
+}
+adouble StochOil::solveBorder_Cp(const Cell& cell, const Cell& cur_cell) const
+{
+	assert(cell.type == elem::BORDER || cur_cell.type == elem::BORDER);
+	return x[cell.id] / P_dim;
+}
+adouble StochOil::solveSource_Cp(const Well& well, const Cell& cur_cell) const
+{
+	const Cell& cell = mesh->cells[well.cell_id];
+	return -well.cur_rate * ht / cell.V / getKg(cell) * Cfp_next[cur_cell.id * cellsNum + cell.id];
+}
+

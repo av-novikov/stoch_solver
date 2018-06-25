@@ -25,15 +25,8 @@ namespace stoch_oil
 		void makeDimLess();
 		void setInitialState();
 
-		adouble* x_p0;
-		adouble* x_Cfp;
-		adouble* x_p2;
-		adouble* x_Cp;
-
-		adouble* h_p0;
-		adouble* h_Cfp;
-		adouble* h_p2;
-		adouble* h_Cp;
+		adouble* x;
+		adouble* h;
 
 		Skeleton_Props props_sk;
 		Oil_Props props_oil;
@@ -72,14 +65,26 @@ namespace stoch_oil
 			};
 			return corrFoo1(cell.cent, beta.cent);
 		};
+		inline double getSigmaf(const Cell& cell) const
+		{
+			return getCf(cell, cell);
+		};
 
-		adouble solveInner0(const Cell& cell) const;
-		adouble solveBorder0(const Cell& cell) const;
-		adouble solveSource0(const Well& well) const;
+		adouble solveInner_p0(const Cell& cell) const;
+		adouble solveBorder_p0(const Cell& cell) const;
+		adouble solveSource_p0(const Well& well) const;
 
-		adouble solveInner1(const Cell& cell, const Cell& cur_cell) const;
-		adouble solveBorder1(const Cell& cell, const Cell& cur_cell) const;
-		adouble solveSource1(const Well& well, const Cell& cur_cell) const;
+		adouble solveInner_Cfp(const Cell& cell, const Cell& cur_cell) const;
+		adouble solveBorder_Cfp(const Cell& cell, const Cell& cur_cell) const;
+		adouble solveSource_Cfp(const Well& well, const Cell& cur_cell) const;
+
+		adouble solveInner_p2(const Cell& cell) const;
+		adouble solveBorder_p2(const Cell& cell) const;
+		adouble solveSource_p2(const Well& well) const;
+
+		adouble solveInner_Cp(const Cell& cell, const Cell& cur_cell) const;
+		adouble solveBorder_Cp(const Cell& cell, const Cell& cur_cell) const;
+		adouble solveSource_Cp(const Well& well, const Cell& cur_cell) const;
 	public:
 		StochOil();
 		~StochOil();
