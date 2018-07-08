@@ -48,17 +48,18 @@ void StochOil::setProps(const Properties& props)
 	for (auto& cfp : Cfp)
 		cfp.resize(cellsNum * cellsNum);
 	Cfp_prev = &Cfp[0][0];	Cfp_next = &Cfp[1][0];
-	//Cfp_prev.resize(cellsNum * cellsNum);	
-	//Cfp_iter.resize(cellsNum * cellsNum);
-	//Cfp_next.resize(cellsNum * cellsNum);
 
 	p2_prev.resize(cellsNum);	
 	p2_iter.resize(cellsNum);	
 	p2_next.resize(cellsNum);
 
-	Cp_prev.resize(possible_steps_num * cellsNum * cellsNum);	
-	Cp_iter.resize(possible_steps_num * cellsNum * cellsNum);
-	Cp_next.resize(possible_steps_num * cellsNum * cellsNum);
+	Cp_prev.resize(possible_steps_num);	
+	Cp_next.resize(possible_steps_num);
+	for (size_t i = 0; i < possible_steps_num; i++)
+	{
+		Cp_prev[i].resize(cellsNum * cellsNum);
+		Cp_next[i].resize(cellsNum * cellsNum);
+	}
 
 	x = new adouble[cellsNum];		
 	h = new adouble[cellsNum]; 
@@ -99,14 +100,10 @@ void StochOil::setInitialState()
 		const auto& cell = mesh->cells[i];
 		p0_prev[i] = p0_iter[i] = p0_next[i] = props_sk.p_init;
 		p2_prev[i] = p2_iter[i] = p2_next[i] = 0.0;
-
-		const auto sl = std::slice(i * cellsNum, cellsNum, var_size);
-		for (size_t j = i * cellsNum; j < (i + 1) * cellsNum; j++)
-		{
-			Cfp_prev[j] = Cfp_next[j] = 0.0;
-			Cp_prev[j] = Cp_iter[j] = Cp_next[j] = 0.0;
-		}
 	}
+
+	for (size_t i = 0; i < possible_steps_num; i++)
+		Cfp[i] = Cp_prev[i] = Cp_next[i] = 0.0;
 
 	// WI calculation
 	for (auto& well : wells)
@@ -314,11 +311,11 @@ adouble StochOil::solveSource_p2(const Well& well) const
 	return well.cur_rate * ht / cell.V / getKg(cell) * getSigmaf(cell) / 2.0;
 }
 
-/*adouble StochOil::solveInner_Cp(const Cell& cell, const Cell& cur_cell) const
+adouble StochOil::solveInner_Cp(const Cell& cell, const Cell& cur_cell, const size_t step_idx) const
 {
 	assert(cell.type == elem::QUAD && cur_cell.type == elem::QUAD);
 	const auto& next = x[cell.id];
-	const auto prev = Cp_prev[cur_cell.id * cellsNum + cell.id];
+	const auto prev = Cp_prev[step_idx][cur_cell.id * cellsNum + cell.id];
 
 	adouble H;
 	H = getS(cell) * (next - prev) / getKg(cell);
@@ -351,22 +348,22 @@ adouble StochOil::solveSource_p2(const Well& well) const
 		(nebr_y_plus - nebr_y_minus) / (beta_y_plus.cent.y - beta_y_minus.cent.y);
 
 	double H1 = -ht * ((p0_next[x_plus] - p0_next[x_minus]) / (beta_x_plus.cent.x - beta_x_minus.cent.x) *
-		(Cfp_next[]getCf(cur_cell, beta_x_plus) - getCf(cur_cell, beta_x_minus)) / (beta_x_plus.cent.x - beta_x_minus.cent.x) +
+		(Cfp[step_idx][cur_cell.id * cellsNum + x_plus] - Cfp[step_idx][cur_cell.id * cellsNum + x_minus]) / (beta_x_plus.cent.x - beta_x_minus.cent.x) +
 		(p0_next[y_plus] - p0_next[y_minus]) / (beta_y_plus.cent.y - beta_y_minus.cent.y) *
-		(getCf(cur_cell, beta_y_plus) - getCf(cur_cell, beta_y_minus)) / (beta_y_plus.cent.y - beta_y_minus.cent.y));
+		(Cfp[step_idx][cur_cell.id * cellsNum + y_plus] - Cfp[step_idx][cur_cell.id * cellsNum + y_minus]) / (beta_y_plus.cent.y - beta_y_minus.cent.y));
 
 	double H2 = -getS(cell) / getKg(cell) * (p0_next[cell.id] - p0_prev[cell.id]) * getCf(cur_cell, cell);
 
 	return H + H1 + H2;
 }
-adouble StochOil::solveBorder_Cp(const Cell& cell, const Cell& cur_cell) const
+adouble StochOil::solveBorder_Cp(const Cell& cell, const Cell& cur_cell, const size_t step_idx) const
 {
 	assert(cell.type == elem::BORDER || cur_cell.type == elem::BORDER);
 	return x[cell.id] / P_dim;
 }
-adouble StochOil::solveSource_Cp(const Well& well, const Cell& cur_cell) const
+adouble StochOil::solveSource_Cp(const Well& well, const Cell& cur_cell, const size_t step_idx) const
 {
 	const Cell& cell = mesh->cells[well.cell_id];
-	return -well.cur_rate * ht / cell.V / getKg(cell) * Cfp_next[cur_cell.id * cellsNum + cell.id];
-}*/
+	return -well.cur_rate * ht / cell.V / getKg(cell) * Cfp[step_idx][cur_cell.id * cellsNum + cell.id];
+}
 

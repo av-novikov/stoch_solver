@@ -131,21 +131,27 @@ void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
 	p0->SetName("p0");
 	auto p2 = vtkSmartPointer<vtkDoubleArray>::New();
 	p2->SetName("p2");
+	
 	auto Cfp_well = vtkSmartPointer<vtkDoubleArray>::New();
 	Cfp_well->SetName("Cfp_well");
-
+	
 	std::vector<vtkSmartPointer<vtkDoubleArray>> Cfp;
-	Cfp.resize(model->cellsNum);
+	Cfp.resize(mesh->num_x * mesh->num_y);
 	int counter = 0;
 	for (const auto& cell : mesh->cells)
-	{
-		Cfp[counter] = vtkSmartPointer<vtkDoubleArray>::New();
-		Cfp[counter]->SetName(("Cfp#" + to_string(counter)).c_str());
-		counter++;
-	}
+		if (cell.type == elem::QUAD)
+		{
+			Cfp[counter] = vtkSmartPointer<vtkDoubleArray>::New();
+			Cfp[counter++]->SetName(("Cfp#" + to_string(cell.id)).c_str());
+		}
 
-	//auto Cp = vtkSmartPointer<vtkDoubleArray>::New();
-	//Cp->SetName("Cp");
+	std::vector<vtkSmartPointer<vtkDoubleArray>> Cp_well;
+	Cp_well.resize(model->possible_steps_num);
+	for (size_t time_step = 0; time_step < model->possible_steps_num; time_step++)
+	{
+		Cp_well[time_step] = vtkSmartPointer<vtkDoubleArray>::New();
+		Cp_well[time_step]->SetName(("Cp_well #" + to_string(time_step)).c_str());
+	}
 
 	points->Allocate((num_x + 1) * (num_y + 1));
 	cells->Allocate(num_x * num_y);
@@ -179,11 +185,16 @@ void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
 			p2->InsertNextValue(model->p2_next[cell.id] * model->P_dim / BAR_TO_PA);
 			Cfp_well->InsertNextValue(model->Cfp_next[model->wells.back().cell_id * model->cellsNum + cell.id]);
 			
-			for (int i = 0; i < Cfp.size(); i++)
-			{
-				auto& Cfp_cur = Cfp[i];
-				Cfp_cur->InsertNextValue(model->Cfp_prev[i * model->cellsNum + cell.id]);
-			}
+			counter = 0;
+			for (const auto& cur_cell : mesh->cells)
+				if (cur_cell.type == elem::QUAD)
+				{
+					auto& Cfp_cur = Cfp[counter++];
+					Cfp_cur->InsertNextValue(model->Cfp_prev[cur_cell.id * model->cellsNum + cell.id]);
+				}
+
+			for (size_t time_step = 0; time_step < model->possible_steps_num; time_step++)
+				Cp_well[time_step]->InsertNextValue(model->Cp_next[time_step][model->wells.back().cell_id * model->cellsNum + cell.id]);
 		}
 	}
 	grid->SetCells(VTK_QUAD, cells);
@@ -194,6 +205,8 @@ void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
 	fd->AddArray(Cfp_well);
 	for(const auto& Cfp_cur : Cfp)
 		fd->AddArray(Cfp_cur);
+	for (const auto& Cp_cur : Cp_well)
+		fd->AddArray(Cp_cur);
 
 	auto writer = vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
 	writer->SetFileName(getFileName(snap_idx).c_str());

@@ -83,9 +83,9 @@ namespace stoch_oil
 		adouble solveBorder_p2(const Cell& cell) const;
 		adouble solveSource_p2(const Well& well) const;
 
-		//adouble solveInner_Cp(const Cell& cell, const Cell& cur_cell) const;
-		//adouble solveBorder_Cp(const Cell& cell, const Cell& cur_cell) const;
-		//adouble solveSource_Cp(const Well& well, const Cell& cur_cell) const;
+		adouble solveInner_Cp(const Cell& cell, const Cell& cur_cell, const size_t step_idx) const;
+		adouble solveBorder_Cp(const Cell& cell, const Cell& cur_cell, const size_t step_idx) const;
+		adouble solveSource_Cp(const Well& well, const Cell& cur_cell, const size_t step_idx) const;
 	public:
 		StochOil();
 		~StochOil();

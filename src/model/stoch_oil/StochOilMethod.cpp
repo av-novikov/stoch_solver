@@ -171,7 +171,7 @@ void StochOilMethod::solveStep()
 	solveStep_p0();
 	solveStep_Cfp();
 	solveStep_p2();
-	//solveStep_Cp();
+	solveStep_Cp();
 }
 void StochOilMethod::solveStep_p0()
 {
@@ -238,15 +238,18 @@ void StochOilMethod::solveStep_p2()
 }
 void StochOilMethod::solveStep_Cp()
 {
-	for (const auto& cell : mesh->cells)
+	for (size_t time_step = 1; time_step < step_idx + 1; time_step++)
 	{
-		computeJac_Cp(cell.id);
-		fill_Cp(cell.id);
-		solver1.Assemble(ind_i1, ind_j1, a1, elemNum1, ind_rhs1, rhs1);
-		solver1.Solve(PRECOND::ILU_SIMPLE);
-		copySolution_Cp(cell.id, solver1.getSolution());
+		for (const auto& cell : mesh->cells)
+		{
+			computeJac_Cp(cell.id, time_step);
+			fill_Cp(cell.id, time_step);
+			solver1.Assemble(ind_i1, ind_j1, a1, elemNum1, ind_rhs1, rhs1);
+			solver1.Solve(PRECOND::ILU_SIMPLE);
+			copySolution_Cp(cell.id, solver1.getSolution(), time_step);
 
-		std::cout << std::endl << "Cp #" << cell.id << std::endl << std::endl;
+			std::cout << std::endl << "time step = " << time_step << "\t Cp #" << cell.id << std::endl << std::endl;
+		}
 	}
 }
 
@@ -265,10 +268,10 @@ void StochOilMethod::copySolution_p2(const paralution::LocalVector<double>& sol)
 	for (int i = 0; i < size; i++)
 		model->p2_next[i] += sol[i];
 }
-void StochOilMethod::copySolution_Cp(const int cell_id, const paralution::LocalVector<double>& sol)
+void StochOilMethod::copySolution_Cp(const int cell_id, const paralution::LocalVector<double>& sol, const size_t time_step)
 {
 	for (int i = 0; i < size; i++)
-		model->Cp_next[cell_id * size + i] += sol[i];
+		model->Cp_next[step_idx][cell_id * size + i] += sol[i];
 }
 
 void StochOilMethod::computeJac_p0()
@@ -361,13 +364,13 @@ void StochOilMethod::computeJac_p2()
 
 	trace_off();
 }
-void StochOilMethod::computeJac_Cp(const int cell_id)
+void StochOilMethod::computeJac_Cp(const int cell_id, const size_t time_step)
 {
-/*	const auto& cell = mesh->cells[cell_id];
+	const auto& cur_cell = mesh->cells[cell_id];
 	trace_on(3);
 
 	for (size_t i = 0; i < size; i++)
-		model->x[i] <<= model->Cp_next[size * cell_id + i];
+		model->x[i] <<= model->Cp_next[time_step][size * cell_id + i];
 
 	if (cur_cell.type == elem::QUAD)
 	{
@@ -376,28 +379,28 @@ void StochOilMethod::computeJac_Cp(const int cell_id)
 			const auto& cell = mesh->cells[i];
 
 			if (cell.type == elem::QUAD)
-				model->h[i] = model->solveInner_Cfp(cell, cur_cell);
+				model->h[i] = model->solveInner_Cp(cell, cur_cell, time_step);
 			else if (cell.type == elem::BORDER)
-				model->h[i] = model->solveBorder_Cfp(cell, cur_cell);
+				model->h[i] = model->solveBorder_Cp(cell, cur_cell, time_step);
 		}
 
 		for (const auto& well : model->wells)
 			if (well.cur_bound)
-				model->h[well.cell_id] += model->solveSource_Cfp(well, cur_cell);
+				model->h[well.cell_id] += model->solveSource_Cp(well, cur_cell, time_step);
 	}
 	else
 	{
 		for (int i = 0; i < size; i++)
 		{
 			const auto& cell = mesh->cells[i];
-			model->h[i] = model->solveBorder_Cfp(cell, cur_cell);
+			model->h[i] = model->solveBorder_Cp(cell, cur_cell, time_step);
 		}
 	}
 
 	for (int i = 0; i < size; i++)
 		model->h[i] >>= y1[i];
 
-	trace_off();*/
+	trace_off();
 }
 
 void StochOilMethod::fill_p0()
@@ -436,10 +439,10 @@ void StochOilMethod::fill_p2()
 		rhs0[cell.id] = -y0[cell.id];
 	}
 }
-void StochOilMethod::fill_Cp(const int cell_id)
+void StochOilMethod::fill_Cp(const int cell_id, const size_t time_step)
 {
 	sparse_jac(3, model->cellsNum, model->cellsNum, repeat,
-		&model->Cp_next[cell_id * model->cellsNum], &elemNum1, (unsigned int**)(&ind_i1), (unsigned int**)(&ind_j1), &a1, options);
+		&model->Cp_next[step_idx][cell_id * model->cellsNum], &elemNum1, (unsigned int**)(&ind_i1), (unsigned int**)(&ind_j1), &a1, options);
 
 	int counter = 0;
 	for (int j = 0; j < size; j++)
@@ -457,9 +460,9 @@ void StochOilMethod::copyTimeLayer()
 	model->Cfp_prev = &model->Cfp[step_idx][0];
 	model->Cfp_next = &model->Cfp[step_idx + 1][0];
 	
-	//model->Cfp_prev = model->Cfp_iter = model->Cfp_next;
 	model->p2_prev = model->p2_iter = model->p2_next;
-	model->Cp_prev = model->Cp_iter = model->Cp_next;
+
+	model->Cp_prev = model->Cp_next;
 }
 void StochOilMethod::copyIterLayer_p0()
 {
@@ -468,12 +471,6 @@ void StochOilMethod::copyIterLayer_p0()
 void StochOilMethod::copyIterLayer_p2()
 {
 	model->p2_iter = model->p2_next;
-}
-void StochOilMethod::copyIterLayer_Cp(const int cell_id)
-{
-	//model->Cp_iter = model->Cp_next;
-	for (int i = cell_id * size; i < (cell_id + 1) * size; i++)
-		model->Cp_iter[i] = model->Cp_next[i];
 }
 
 double StochOilMethod::convergance_p0(int& ind, int& varInd)
@@ -500,29 +497,6 @@ double StochOilMethod::convergance_p2(int& ind, int& varInd)
 
 	return *max_iter;
 }
-double StochOilMethod::convergance_Cp(int& ind, int& varInd, const int cell_id)
-{
-	double relErr = 0.0;
-	double cur_relErr = 0.0;
-
-	varInd = 0;
-	for (const auto& cell : mesh->cells)
-	{
-		double tmp = model->Cp_next[cell_id * model->cellsNum + cell.id];
-		if (tmp > EQUALITY_TOLERANCE)
-			cur_relErr = (tmp - model->Cp_iter[cell_id * model->cellsNum + cell.id]) / tmp;
-		else
-			cur_relErr = 0.0;
-
-		if (cur_relErr > relErr)
-		{
-			relErr = cur_relErr;
-			ind = cell.id;
-		}
-	}
-
-	return relErr;
-}
 
 double StochOilMethod::averValue_p0() const 
 {
@@ -545,10 +519,10 @@ double StochOilMethod::averValue_p2() const
 		aver += model->p2_next[cell.id] * cell.V;
 	return aver / model->Volume;
 }
-double StochOilMethod::averValue_Cp(const int cell_id) const
+double StochOilMethod::averValue_Cp(const int cell_id, const size_t time_step) const
 {
 	double aver = 0.0;
 	for (const auto& cell : mesh->cells)
-		aver += model->Cp_next[cell_id * model->cellsNum + cell.id] * cell.V;
+		aver += model->Cp_next[time_step][cell_id * model->cellsNum + cell.id] * cell.V;
 	return aver / model->Volume;
 }

@@ -50,31 +50,29 @@ namespace stoch_oil
 		void computeJac_p0();
 		void computeJac_Cfp(const int cell_id);
 		void computeJac_p2();
-		void computeJac_Cp(const int cell_id);
+		void computeJac_Cp(const int cell_id, const size_t time_step);
 		void fillIndices0();
 		void fillIndices1();
 		void fill_p0();
 		void fill_Cfp(const int cell_id);
 		void fill_p2();
-		void fill_Cp(const int cell_id);
+		void fill_Cp(const int cell_id, const size_t time_step);
 		void copySolution_p0(const paralution::LocalVector<double>& sol);
 		void copySolution_Cfp(const int cell_id, const paralution::LocalVector<double>& sol);
 		void copySolution_p2(const paralution::LocalVector<double>& sol);
-		void copySolution_Cp(const int cell_id, const paralution::LocalVector<double>& sol);
+		void copySolution_Cp(const int cell_id, const paralution::LocalVector<double>& sol, const size_t time_step);
 
 		void copyTimeLayer();
 		void copyIterLayer_p0();
 		void copyIterLayer_p2();
-		void copyIterLayer_Cp(const int cell_id);
 
 		double convergance_p0(int& ind, int& varInd);
 		double convergance_p2(int& ind, int& varInd);
-		double convergance_Cp(int& ind, int& varInd, const int cell_id);
 
 		double averValue_p0() const;
 		double averValue_Cfp(const int cell_id) const;
 		double averValue_p2() const;
-		double averValue_Cp(const int cell_id) const;
+		double averValue_Cp(const int cell_id, const size_t time_step) const;
 	public:
 		StochOilMethod(Model* _model);
 		~StochOilMethod();
