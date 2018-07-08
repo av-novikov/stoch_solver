@@ -363,7 +363,7 @@ void StochOilMethod::computeJac_p2()
 }
 void StochOilMethod::computeJac_Cp(const int cell_id)
 {
-	const auto& cell = mesh->cells[cell_id];
+/*	const auto& cell = mesh->cells[cell_id];
 	trace_on(3);
 
 	for (size_t i = 0; i < size; i++)
@@ -397,7 +397,7 @@ void StochOilMethod::computeJac_Cp(const int cell_id)
 	for (int i = 0; i < size; i++)
 		model->h[i] >>= y1[i];
 
-	trace_off();
+	trace_off();*/
 }
 
 void StochOilMethod::fill_p0()
@@ -452,19 +452,18 @@ void StochOilMethod::fill_Cp(const int cell_id)
 void StochOilMethod::copyTimeLayer()
 {
 	model->p0_prev = model->p0_iter = model->p0_next;
-	model->Cfp_prev = model->Cfp_iter = model->Cfp_next;
+
+	model->Cfp[step_idx + 1] = model->Cfp[step_idx];
+	model->Cfp_prev = &model->Cfp[step_idx][0];
+	model->Cfp_next = &model->Cfp[step_idx + 1][0];
+	
+	//model->Cfp_prev = model->Cfp_iter = model->Cfp_next;
 	model->p2_prev = model->p2_iter = model->p2_next;
 	model->Cp_prev = model->Cp_iter = model->Cp_next;
 }
 void StochOilMethod::copyIterLayer_p0()
 {
 	model->p0_iter = model->p0_next;
-}
-void StochOilMethod::copyIterLayer_Cfp(const int cell_id)
-{
-//	model->Cfp_iter = model->Cfp_next;
-	for(int i = cell_id * size; i < (cell_id + 1) * size; i++)
-		model->Cfp_iter[i] = model->Cfp_next[i];
 }
 void StochOilMethod::copyIterLayer_p2()
 {
@@ -488,29 +487,6 @@ double StochOilMethod::convergance_p0(int& ind, int& varInd)
 	ind = std::distance(std::begin(diff), max_iter);
 
 	return *max_iter;
-}
-double StochOilMethod::convergance_Cfp(int& ind, int& varInd, const int cell_id)
-{
-	double relErr = 0.0;
-	double cur_relErr = 0.0;
-
-	varInd = 0;
-	for (const auto& cell : mesh->cells)
-	{
-		double tmp = model->Cfp_next[cell_id * model->cellsNum + cell.id];
-		if (tmp > EQUALITY_TOLERANCE)
-			cur_relErr = (tmp - model->Cfp_iter[cell_id * model->cellsNum + cell.id]) / tmp;
-		else
-			cur_relErr = 0.0;
-
-		if (cur_relErr > relErr)
-		{
-			relErr = cur_relErr;
-			ind = cell.id;
-		}
-	}
-
-	return relErr;
 }
 double StochOilMethod::convergance_p2(int& ind, int& varInd)
 {

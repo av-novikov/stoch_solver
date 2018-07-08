@@ -64,12 +64,10 @@ namespace stoch_oil
 
 		void copyTimeLayer();
 		void copyIterLayer_p0();
-		void copyIterLayer_Cfp(const int cell_id);
 		void copyIterLayer_p2();
 		void copyIterLayer_Cp(const int cell_id);
 
 		double convergance_p0(int& ind, int& varInd);
-		double convergance_Cfp(int& ind, int& varInd, const int cell_id);
 		double convergance_p2(int& ind, int& varInd);
 		double convergance_Cp(int& ind, int& varInd, const int cell_id);
 

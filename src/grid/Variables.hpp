@@ -102,10 +102,10 @@ namespace var
 		static const int size0 = TVariable::size;
 
 		//typedef StochVarWrapper<TVariable0,TVariable1,TVariable2,TVariable3> Wrap;
-		std::valarray<double> p0_prev, p0_iter, p0_next, 
-								Cfp_prev, Cfp_iter, Cfp_next, 
-									p2_prev, p2_iter, p2_next,
-										Cp_prev, Cp_iter, Cp_next;
+		std::valarray<double> p0_prev, p0_iter, p0_next, p2_prev, p2_iter, p2_next, Cp_prev, Cp_iter, Cp_next;
+		std::valarray<std::valarray<double>> Cfp;
+		double* Cfp_next, *Cfp_prev;
+										
 		/*Wrap operator[](const size_t idx)
 		{
 			return{ TVariable0(&u_prev0[idx * size0]), TVariable0(&u_iter0[idx * size0]), TVariable0(&u_next0[idx * size0]),

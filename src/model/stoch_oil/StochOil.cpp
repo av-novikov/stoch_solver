@@ -19,29 +19,8 @@ void StochOil::setProps(const Properties& props)
 	R_dim = props.R_dim;
 	t_dim = props.t_dim;
 	Q_dim = R_dim * R_dim * R_dim / t_dim;
-	mesh = std::make_shared<Mesh>(*new Mesh(props.num_x, props.num_y, props.hx / R_dim, props.hy / R_dim, props.hz / R_dim));
 
-	cellsNum = mesh.get()->num;
-	p0_prev.resize(var_size * cellsNum);	
-	p0_iter.resize(var_size * cellsNum);	
-	p0_next.resize(var_size * cellsNum);
-
-	Cfp_prev.resize(var_size * cellsNum * cellsNum);	
-	Cfp_iter.resize(var_size * cellsNum * cellsNum);
-	Cfp_next.resize(var_size * cellsNum * cellsNum);
-
-	p2_prev.resize(var_size * cellsNum);	
-	p2_iter.resize(var_size * cellsNum);	
-	p2_next.resize(var_size * cellsNum);
-
-	Cp_prev.resize(var_size * cellsNum * cellsNum);	
-	Cp_iter.resize(var_size * cellsNum * cellsNum);	
-	Cp_next.resize(var_size * cellsNum * cellsNum);
-
-	x = new adouble[cellsNum];		
-	h = new adouble[cellsNum]; 
-	Volume = mesh.get()->V;
-
+	possible_steps_num = props.possible_steps_num;
 	ht = props.ht;
 	ht_min = props.ht_min;
 	ht_max = props.ht_max;
@@ -56,6 +35,33 @@ void StochOil::setProps(const Properties& props)
 	for (auto& well : wells)
 		for (auto& rate : well.rate)
 			rate /= 86400;
+
+	mesh = std::make_shared<Mesh>(*new Mesh(props.num_x, props.num_y, props.hx / R_dim, props.hy / R_dim, props.hz / R_dim));
+	Volume = mesh.get()->V;
+	cellsNum = mesh.get()->num;
+
+	p0_prev.resize(cellsNum);	
+	p0_iter.resize(cellsNum);	
+	p0_next.resize(cellsNum);
+
+	Cfp.resize(possible_steps_num);
+	for (auto& cfp : Cfp)
+		cfp.resize(cellsNum * cellsNum);
+	Cfp_prev = &Cfp[0][0];	Cfp_next = &Cfp[1][0];
+	//Cfp_prev.resize(cellsNum * cellsNum);	
+	//Cfp_iter.resize(cellsNum * cellsNum);
+	//Cfp_next.resize(cellsNum * cellsNum);
+
+	p2_prev.resize(cellsNum);	
+	p2_iter.resize(cellsNum);	
+	p2_next.resize(cellsNum);
+
+	Cp_prev.resize(possible_steps_num * cellsNum * cellsNum);	
+	Cp_iter.resize(possible_steps_num * cellsNum * cellsNum);
+	Cp_next.resize(possible_steps_num * cellsNum * cellsNum);
+
+	x = new adouble[cellsNum];		
+	h = new adouble[cellsNum]; 
 
 	makeDimLess();
 }
@@ -97,7 +103,7 @@ void StochOil::setInitialState()
 		const auto sl = std::slice(i * cellsNum, cellsNum, var_size);
 		for (size_t j = i * cellsNum; j < (i + 1) * cellsNum; j++)
 		{
-			Cfp_prev[j] = Cfp_iter[j] = Cfp_next[j] = 0.0;
+			Cfp_prev[j] = Cfp_next[j] = 0.0;
 			Cp_prev[j] = Cp_iter[j] = Cp_next[j] = 0.0;
 		}
 	}
@@ -308,7 +314,7 @@ adouble StochOil::solveSource_p2(const Well& well) const
 	return well.cur_rate * ht / cell.V / getKg(cell) * getSigmaf(cell) / 2.0;
 }
 
-adouble StochOil::solveInner_Cp(const Cell& cell, const Cell& cur_cell) const
+/*adouble StochOil::solveInner_Cp(const Cell& cell, const Cell& cur_cell) const
 {
 	assert(cell.type == elem::QUAD && cur_cell.type == elem::QUAD);
 	const auto& next = x[cell.id];
@@ -344,7 +350,6 @@ adouble StochOil::solveInner_Cp(const Cell& cell, const Cell& cur_cell) const
 	H -= ht * (getFavg(beta_y_plus) - getFavg(beta_y_minus)) / (beta_y_plus.cent.y - beta_y_minus.cent.y) *
 		(nebr_y_plus - nebr_y_minus) / (beta_y_plus.cent.y - beta_y_minus.cent.y);
 
-
 	double H1 = -ht * ((p0_next[x_plus] - p0_next[x_minus]) / (beta_x_plus.cent.x - beta_x_minus.cent.x) *
 		(Cfp_next[]getCf(cur_cell, beta_x_plus) - getCf(cur_cell, beta_x_minus)) / (beta_x_plus.cent.x - beta_x_minus.cent.x) +
 		(p0_next[y_plus] - p0_next[y_minus]) / (beta_y_plus.cent.y - beta_y_minus.cent.y) *
@@ -363,5 +368,5 @@ adouble StochOil::solveSource_Cp(const Well& well, const Cell& cur_cell) const
 {
 	const Cell& cell = mesh->cells[well.cell_id];
 	return -well.cur_rate * ht / cell.V / getKg(cell) * Cfp_next[cur_cell.id * cellsNum + cell.id];
-}
+}*/
 

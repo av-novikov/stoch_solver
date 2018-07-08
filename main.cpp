@@ -23,6 +23,7 @@ int main()
 {
 	stoch_oil::Properties props;
 	
+	props.possible_steps_num = 20;
 	props.t_dim = 3600.0;
 	props.ht = props.ht_min = 1000.0;
 	props.ht_max = 1000000.0;
@@ -64,7 +65,6 @@ int main()
 	well2.leftBoundIsRate.resize(well2.periodsNum);
 	well2.leftBoundIsRate[0] = true;
 	well2.rw = 0.1;
-
 
 	Scene<issues::StochOil> scene;
 	scene.load(props);

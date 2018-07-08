@@ -182,7 +182,7 @@ void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
 			for (int i = 0; i < Cfp.size(); i++)
 			{
 				auto& Cfp_cur = Cfp[i];
-				Cfp_cur->InsertNextValue(model->Cfp_next[i * model->cellsNum + cell.id]);
+				Cfp_cur->InsertNextValue(model->Cfp_prev[i * model->cellsNum + cell.id]);
 			}
 		}
 	}

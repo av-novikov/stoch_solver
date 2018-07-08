@@ -60,17 +60,9 @@ void AbstractMethod<modelType>::copyTimeLayer()
 }
 void AbstractMethod<stoch_oil::StochOil>::copyIterLayer()
 {
-	model->p0_iter = model->p0_next;
-	model->Cfp_iter = model->Cfp_next;
-	model->p2_iter = model->p2_next;
-	model->Cp_iter = model->Cp_next;
 }
 void AbstractMethod<stoch_oil::StochOil>::copyTimeLayer()
 {
-	model->p0_prev = model->p0_iter = model->p0_next;
-	model->Cfp_prev = model->Cfp_iter = model->Cfp_next;
-	model->p2_prev = model->p2_iter = model->p2_next;
-	model->Cp_prev = model->Cp_iter = model->Cp_next;
 }
 
 template <class modelType>

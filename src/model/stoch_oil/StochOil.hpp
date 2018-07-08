@@ -28,6 +28,7 @@ namespace stoch_oil
 		adouble* x;
 		adouble* h;
 
+		size_t possible_steps_num;
 		Skeleton_Props props_sk;
 		Oil_Props props_oil;
 		std::vector<Well> wells;
@@ -82,9 +83,9 @@ namespace stoch_oil
 		adouble solveBorder_p2(const Cell& cell) const;
 		adouble solveSource_p2(const Well& well) const;
 
-		adouble solveInner_Cp(const Cell& cell, const Cell& cur_cell) const;
-		adouble solveBorder_Cp(const Cell& cell, const Cell& cur_cell) const;
-		adouble solveSource_Cp(const Well& well, const Cell& cur_cell) const;
+		//adouble solveInner_Cp(const Cell& cell, const Cell& cur_cell) const;
+		//adouble solveBorder_Cp(const Cell& cell, const Cell& cur_cell) const;
+		//adouble solveSource_Cp(const Well& well, const Cell& cur_cell) const;
 	public:
 		StochOil();
 		~StochOil();
