@@ -348,9 +348,9 @@ adouble StochOil::solveInner_Cp(const Cell& cell, const Cell& cur_cell, const si
 		(nebr_y_plus - nebr_y_minus) / (beta_y_plus.cent.y - beta_y_minus.cent.y);
 
 	double H1 = -ht * ((p0_next[x_plus] - p0_next[x_minus]) / (beta_x_plus.cent.x - beta_x_minus.cent.x) *
-		(Cfp[step_idx][cur_cell.id * cellsNum + x_plus] - Cfp[step_idx][cur_cell.id * cellsNum + x_minus]) / (beta_x_plus.cent.x - beta_x_minus.cent.x) +
+		(Cfp[step_idx + 1][cur_cell.id * cellsNum + x_plus] - Cfp[step_idx + 1][cur_cell.id * cellsNum + x_minus]) / (beta_x_plus.cent.x - beta_x_minus.cent.x) +
 		(p0_next[y_plus] - p0_next[y_minus]) / (beta_y_plus.cent.y - beta_y_minus.cent.y) *
-		(Cfp[step_idx][cur_cell.id * cellsNum + y_plus] - Cfp[step_idx][cur_cell.id * cellsNum + y_minus]) / (beta_y_plus.cent.y - beta_y_minus.cent.y));
+		(Cfp[step_idx + 1][cur_cell.id * cellsNum + y_plus] - Cfp[step_idx + 1][cur_cell.id * cellsNum + y_minus]) / (beta_y_plus.cent.y - beta_y_minus.cent.y));
 
 	double H2 = -getS(cell) / getKg(cell) * (p0_next[cell.id] - p0_prev[cell.id]) * getCf(cur_cell, cell);
 
@@ -366,4 +366,3 @@ adouble StochOil::solveSource_Cp(const Well& well, const Cell& cur_cell, const s
 	const Cell& cell = mesh->cells[well.cell_id];
 	return -well.cur_rate * ht / cell.V / getKg(cell) * Cfp[step_idx][cur_cell.id * cellsNum + cell.id];
 }
-
