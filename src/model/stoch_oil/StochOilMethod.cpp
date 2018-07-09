@@ -202,13 +202,15 @@ void StochOilMethod::solveStep_Cfp()
 {
 	for (const auto& cell : mesh->cells)
 	{
-		computeJac_Cfp(cell.id);
-		fill_Cfp(cell.id);
-		solver1.Assemble(ind_i1, ind_j1, a1, elemNum1, ind_rhs1, rhs1);
-		solver1.Solve(PRECOND::ILU_SIMPLE);
-		copySolution_Cfp(cell.id, solver1.getSolution());
-
-		std::cout << std::endl << "Cfp #" << cell.id << std::endl << std::endl;
+		if (cell.type == elem::QUAD)
+		{
+			computeJac_Cfp(cell.id);
+			fill_Cfp(cell.id);
+			solver1.Assemble(ind_i1, ind_j1, a1, elemNum1, ind_rhs1, rhs1);
+			solver1.Solve(PRECOND::ILU_SIMPLE);
+			copySolution_Cfp(cell.id, solver1.getSolution());
+			std::cout << std::endl << "Cfp #" << cell.id << std::endl << std::endl;
+		}
 	}
 }
 void StochOilMethod::solveStep_p2()
@@ -238,17 +240,19 @@ void StochOilMethod::solveStep_p2()
 }
 void StochOilMethod::solveStep_Cp()
 {
-	for (size_t time_step = 1; time_step < step_idx + 1; time_step++)
+	for (size_t time_step = 0; time_step < step_idx + 1; time_step++)
 	{
 		for (const auto& cell : mesh->cells)
 		{
-			computeJac_Cp(cell.id, time_step);
-			fill_Cp(cell.id, time_step);
-			solver1.Assemble(ind_i1, ind_j1, a1, elemNum1, ind_rhs1, rhs1);
-			solver1.Solve(PRECOND::ILU_SIMPLE);
-			copySolution_Cp(cell.id, solver1.getSolution(), time_step);
-
-			std::cout << std::endl << "time step = " << time_step << "\t Cp #" << cell.id << std::endl << std::endl;
+			if (cell.type == elem::QUAD)
+			{
+				computeJac_Cp(cell.id, time_step);
+				fill_Cp(cell.id, time_step);
+				solver1.Assemble(ind_i1, ind_j1, a1, elemNum1, ind_rhs1, rhs1);
+				solver1.Solve(PRECOND::ILU_SIMPLE);
+				copySolution_Cp(cell.id, solver1.getSolution(), time_step);
+				std::cout << std::endl << "time step = " << time_step << "\t Cp #" << cell.id << std::endl << std::endl;
+			}
 		}
 	}
 }
@@ -442,7 +446,7 @@ void StochOilMethod::fill_p2()
 void StochOilMethod::fill_Cp(const int cell_id, const size_t time_step)
 {
 	sparse_jac(3, model->cellsNum, model->cellsNum, repeat,
-		&model->Cp_next[step_idx][cell_id * model->cellsNum], &elemNum1, (unsigned int**)(&ind_i1), (unsigned int**)(&ind_j1), &a1, options);
+		&model->Cp_next[time_step][cell_id * model->cellsNum], &elemNum1, (unsigned int**)(&ind_i1), (unsigned int**)(&ind_j1), &a1, options);
 
 	int counter = 0;
 	for (int j = 0; j < size; j++)
