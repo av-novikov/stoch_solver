@@ -271,7 +271,7 @@ void StochOilMethod::copySolution_p2(const paralution::LocalVector<double>& sol)
 void StochOilMethod::copySolution_Cp(const int cell_id, const paralution::LocalVector<double>& sol, const size_t time_step)
 {
 	for (int i = 0; i < size; i++)
-		model->Cp_next[step_idx][cell_id * size + i] += sol[i];
+		model->Cp_next[time_step][cell_id * size + i] += sol[i];
 }
 
 void StochOilMethod::computeJac_p0()
@@ -379,7 +379,7 @@ void StochOilMethod::computeJac_Cp(const int cell_id, const size_t time_step)
 			const auto& cell = mesh->cells[i];
 
 			if (cell.type == elem::QUAD)
-				model->h[i] = model->solveInner_Cp(cell, cur_cell, time_step);
+				model->h[i] = model->solveInner_Cp(cell, cur_cell, time_step, step_idx);
 			else if (cell.type == elem::BORDER)
 				model->h[i] = model->solveBorder_Cp(cell, cur_cell, time_step);
 		}

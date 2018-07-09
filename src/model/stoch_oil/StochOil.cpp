@@ -311,7 +311,7 @@ adouble StochOil::solveSource_p2(const Well& well) const
 	return well.cur_rate * ht / cell.V / getKg(cell) * getSigmaf(cell) / 2.0;
 }
 
-adouble StochOil::solveInner_Cp(const Cell& cell, const Cell& cur_cell, const size_t step_idx) const
+adouble StochOil::solveInner_Cp(const Cell& cell, const Cell& cur_cell, const size_t step_idx, const size_t cur_step_idx) const
 {
 	assert(cell.type == elem::QUAD && cur_cell.type == elem::QUAD);
 	const auto& next = x[cell.id];
