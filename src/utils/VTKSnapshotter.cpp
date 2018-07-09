@@ -153,6 +153,9 @@ void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
 		Cp_well[time_step]->SetName(("Cp_well #" + to_string(time_step)).c_str());
 	}
 
+	auto variance = vtkSmartPointer<vtkDoubleArray>::New();
+	variance->SetName("variance");
+
 	points->Allocate((num_x + 1) * (num_y + 1));
 	cells->Allocate(num_x * num_y);
 	double hx = mesh->hx / (double)num_x;
@@ -183,7 +186,8 @@ void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
 
 			p0->InsertNextValue(model->p0_next[cell.id] * model->P_dim / BAR_TO_PA);
 			p2->InsertNextValue(model->p2_next[cell.id] * model->P_dim / BAR_TO_PA);
-			Cfp_well->InsertNextValue(model->Cfp_next[model->wells.back().cell_id * model->cellsNum + cell.id]);
+			Cfp_well->InsertNextValue(model->Cfp_next[model->wells.back().cell_id * model->cellsNum + cell.id] * model->P_dim / BAR_TO_PA);
+			variance->InsertNextValue(model->Cp_next[snap_idx][cell.id * model->cellsNum + cell.id] * model->P_dim * model->P_dim / BAR_TO_PA / BAR_TO_PA);
 			
 			counter = 0;
 			for (const auto& cur_cell : mesh->cells)
@@ -207,6 +211,7 @@ void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
 		fd->AddArray(Cfp_cur);
 	for (const auto& Cp_cur : Cp_well)
 		fd->AddArray(Cp_cur);
+	fd->AddArray(variance);
 
 	auto writer = vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
 	writer->SetFileName(getFileName(snap_idx).c_str());
