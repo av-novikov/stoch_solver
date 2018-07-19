@@ -86,7 +86,7 @@ void StochOilMethod::control()
 		model->setPeriod(curTimePeriod);
 	}
 
-	model->ht *= 1.5;
+	model->ht *= 2.0;
 	//if (model->ht <= model->ht_max && iterations < 6)
 	//	model->ht = model->ht * 1.5;
 	//else if (iterations > 6 && model->ht > model->ht_min)
@@ -296,8 +296,7 @@ void StochOilMethod::computeJac_p0()
 	}
 
 	for (const auto& well : model->wells)
-		if (well.cur_bound)
-			model->h[well.cell_id * var_size] += model->solveSource_p0(well);
+		model->h[well.cell_id * var_size] += model->solveSource_p0(well);
 
 	for (int i = 0; i < var_size * size; i++)
 		model->h[i] >>= y0[i];
@@ -325,8 +324,7 @@ void StochOilMethod::computeJac_Cfp(const int cell_id)
 		}
 
 		for (const auto& well : model->wells)
-			if (well.cur_bound)
-				model->h[well.cell_id] += model->solveSource_Cfp(well, cur_cell);
+			model->h[well.cell_id] += model->solveSource_Cfp(well, cur_cell);
 	}
 	else
 	{
@@ -360,8 +358,7 @@ void StochOilMethod::computeJac_p2()
 	}
 
 	for (const auto& well : model->wells)
-		if (well.cur_bound)
-			model->h[well.cell_id * var_size] += model->solveSource_p2(well);
+		model->h[well.cell_id * var_size] += model->solveSource_p2(well);
 
 	for (int i = 0; i < var_size * size; i++)
 		model->h[i] >>= y0[i];
@@ -389,8 +386,7 @@ void StochOilMethod::computeJac_Cp(const int cell_id, const size_t time_step)
 		}
 
 		for (const auto& well : model->wells)
-			if (well.cur_bound)
-				model->h[well.cell_id] += model->solveSource_Cp(well, cur_cell, time_step);
+			model->h[well.cell_id] += model->solveSource_Cp(well, cur_cell, time_step);
 	}
 	else
 	{

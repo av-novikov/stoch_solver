@@ -135,7 +135,7 @@ void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
 	auto Cfp_well = vtkSmartPointer<vtkDoubleArray>::New();
 	Cfp_well->SetName("Cfp_well");
 	
-	std::vector<vtkSmartPointer<vtkDoubleArray>> Cfp;
+	/*std::vector<vtkSmartPointer<vtkDoubleArray>> Cfp;
 	Cfp.resize(mesh->num_x * mesh->num_y);
 	int counter = 0;
 	for (const auto& cell : mesh->cells)
@@ -143,7 +143,7 @@ void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
 		{
 			Cfp[counter] = vtkSmartPointer<vtkDoubleArray>::New();
 			Cfp[counter++]->SetName(("Cfp#" + to_string(cell.id)).c_str());
-		}
+		}*/
 
 	std::vector<vtkSmartPointer<vtkDoubleArray>> Cp_well;
 	Cp_well.resize(model->possible_steps_num);
@@ -198,13 +198,13 @@ void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
 			else
 				stand_dev->InsertNextValue(0.0);
 			
-			counter = 0;
+			/*counter = 0;
 			for (const auto& cur_cell : mesh->cells)
 				if (cur_cell.type == elem::QUAD)
 				{
 					auto& Cfp_cur = Cfp[counter++];
 					Cfp_cur->InsertNextValue(model->Cfp_prev[cur_cell.id * model->cellsNum + cell.id]);
-				}
+				}*/
 
 			for (size_t time_step = 0; time_step < model->possible_steps_num; time_step++)
 				Cp_well[time_step]->InsertNextValue(model->Cp_next[time_step][model->wells.back().cell_id * model->cellsNum + cell.id]);
@@ -216,8 +216,8 @@ void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
 	fd->AddArray(p0);
 	fd->AddArray(p2);
 	fd->AddArray(Cfp_well);
-	for(const auto& Cfp_cur : Cfp)
-		fd->AddArray(Cfp_cur);
+	//for(const auto& Cfp_cur : Cfp)
+	//	fd->AddArray(Cfp_cur);
 	for (const auto& Cp_cur : Cp_well)
 		fd->AddArray(Cp_cur);
 	fd->AddArray(variance);

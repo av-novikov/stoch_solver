@@ -191,7 +191,10 @@ adouble StochOil::solveBorder_p0(const Cell& cell) const
 adouble StochOil::solveSource_p0(const Well& well) const
 {
 	const Cell& cell = mesh->cells[well.cell_id];
-	return well.cur_rate * ht / cell.V / getKg(cell);
+	if(well.cur_bound == true)
+		return well.cur_rate * ht / cell.V / getKg(cell);
+	else
+		return well.WI / props_oil.visc * (x[cell.id] - well.cur_pwf) * ht / cell.V / getKg(cell);
 }
 
 adouble StochOil::solveInner_Cfp(const Cell& cell, const Cell& cur_cell) const
@@ -248,7 +251,10 @@ adouble StochOil::solveBorder_Cfp(const Cell& cell, const Cell& cur_cell) const
 adouble StochOil::solveSource_Cfp(const Well& well, const Cell& cur_cell) const
 {
 	const Cell& cell = mesh->cells[well.cell_id];
-	return -well.cur_rate * ht / cell.V / getKg(cell) * getCf(cur_cell, cell);
+	if (well.cur_bound == true)
+		return -well.cur_rate * ht / cell.V / getKg(cell) * getCf(cur_cell, cell);
+	else
+		return -well.WI / props_oil.visc * (x[cell.id] - well.cur_pwf) * ht / cell.V / getKg(cell) * getCf(cur_cell, cell);
 }
 
 adouble StochOil::solveInner_p2(const Cell& cell) const
@@ -308,7 +314,10 @@ adouble StochOil::solveBorder_p2(const Cell& cell) const
 adouble StochOil::solveSource_p2(const Well& well) const
 {
 	const Cell& cell = mesh->cells[well.cell_id];
-	return well.cur_rate * ht / cell.V / getKg(cell) * getSigmaf(cell) / 2.0;
+	if (well.cur_bound == true)
+		return well.cur_rate * ht / cell.V / getKg(cell) * getSigmaf(cell) / 2.0;
+	else
+		return well.WI / props_oil.visc * (x[cell.id] - well.cur_pwf) * ht / cell.V / getKg(cell) * getSigmaf(cell) / 2.0;
 }
 
 adouble StochOil::solveInner_Cp(const Cell& cell, const Cell& cur_cell, const size_t step_idx, const size_t cur_step_idx) const
@@ -364,5 +373,8 @@ adouble StochOil::solveBorder_Cp(const Cell& cell, const Cell& cur_cell, const s
 adouble StochOil::solveSource_Cp(const Well& well, const Cell& cur_cell, const size_t step_idx) const
 {
 	const Cell& cell = mesh->cells[well.cell_id];
-	return -well.cur_rate * ht / cell.V / getKg(cell) * Cfp[step_idx][cell.id * cellsNum + cur_cell.id];
+	if (well.cur_bound == true)
+		return -well.cur_rate * ht / cell.V / getKg(cell) * Cfp[step_idx][cell.id * cellsNum + cur_cell.id];
+	else
+		return -well.WI / props_oil.visc * (x[cell.id] - well.cur_pwf) * ht / cell.V / getKg(cell) * Cfp[step_idx][cell.id * cellsNum + cur_cell.id];
 }
