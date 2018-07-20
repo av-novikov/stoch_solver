@@ -183,10 +183,17 @@ adouble StochOil::solveInner_p0(const Cell& cell) const
 adouble StochOil::solveBorder_p0(const Cell& cell) const
 {
 	assert(cell.type == elem::BORDER);
+	const auto& beta = mesh->cells[cell.stencil[1]];
 
 	const auto& cur = x[cell.id];
 	const auto& nebr = x[cell.stencil[1]];
-	return (cur - (adouble)(props_sk.p_out)) / P_dim;
+
+	if (cell.cent.x - beta.cent.x > EQUALITY_TOLERANCE)
+		return (cur - 0.5 * (adouble)(props_sk.p_out)) / P_dim;
+	else if (cell.cent.x - beta.cent.x < -EQUALITY_TOLERANCE)
+		return (cur - 1.5 * (adouble)(props_sk.p_out)) / P_dim;
+	else if (fabs(cell.cent.y - beta.cent.y) > EQUALITY_TOLERANCE)
+		return (cur - nebr) / P_dim;
 }
 adouble StochOil::solveSource_p0(const Well& well) const
 {
@@ -246,7 +253,12 @@ adouble StochOil::solveInner_Cfp(const Cell& cell, const Cell& cur_cell) const
 adouble StochOil::solveBorder_Cfp(const Cell& cell, const Cell& cur_cell) const
 {
 	assert(cell.type == elem::BORDER || cur_cell.type == elem::BORDER);
-	return x[cell.id] / P_dim;
+	const auto& beta = mesh->cells[cell.stencil[1]];
+
+	if (fabs(cell.cent.x - beta.cent.x) > EQUALITY_TOLERANCE)
+		return x[cell.id] / P_dim;
+	else if (fabs(cell.cent.y - beta.cent.y) > EQUALITY_TOLERANCE)
+		return (x[cell.id] - x[beta.id]) / P_dim;
 }
 adouble StochOil::solveSource_Cfp(const Well& well, const Cell& cur_cell) const
 {
@@ -302,22 +314,27 @@ adouble StochOil::solveInner_p2(const Cell& cell) const
 						(beta_y_plus.cent.y - beta_y_minus.cent.y) / (beta_y_plus.cent.y - beta_y_minus.cent.y);
 
 	const size_t idx = cell.id * cellsNum + cell.id;
-	double H2 = getS(cell) / getKg(cell) * ((p0_next[cell.id] - p0_prev[cell.id]) * getSigmaf(cell) / 2.0 -
+	double H2 = getS(cell) / getKg(cell) * ((p0_next[cell.id] - p0_prev[cell.id]) * getSigma2f(cell) / 2.0 -
 							(Cfp_next[idx] - Cfp_prev[idx]));
 	return H + H1 + H2;
 }
 adouble StochOil::solveBorder_p2(const Cell& cell) const
 {
 	assert(cell.type == elem::BORDER);
-	return x[cell.id] / P_dim;
+	const auto& beta = mesh->cells[cell.stencil[1]];
+
+	if (fabs(cell.cent.x - beta.cent.x) > EQUALITY_TOLERANCE)
+		return x[cell.id] / P_dim;
+	else if (fabs(cell.cent.y - beta.cent.y) > EQUALITY_TOLERANCE)
+		return (x[cell.id] - x[beta.id]) / P_dim;
 }
 adouble StochOil::solveSource_p2(const Well& well) const
 {
 	const Cell& cell = mesh->cells[well.cell_id];
 	if (well.cur_bound == true)
-		return well.cur_rate * ht / cell.V / getKg(cell) * getSigmaf(cell) / 2.0;
+		return well.cur_rate * ht / cell.V / getKg(cell) * getSigma2f(cell) / 2.0;
 	else
-		return well.WI / props_oil.visc * (x[cell.id] - well.cur_pwf) * ht / cell.V / getKg(cell) * getSigmaf(cell) / 2.0;
+		return well.WI / props_oil.visc * (x[cell.id] - well.cur_pwf) * ht / cell.V / getKg(cell) * getSigma2f(cell) / 2.0;
 }
 
 adouble StochOil::solveInner_Cp(const Cell& cell, const Cell& cur_cell, const size_t step_idx, const size_t cur_step_idx) const
@@ -368,7 +385,12 @@ adouble StochOil::solveInner_Cp(const Cell& cell, const Cell& cur_cell, const si
 adouble StochOil::solveBorder_Cp(const Cell& cell, const Cell& cur_cell, const size_t step_idx) const
 {
 	assert(cell.type == elem::BORDER || cur_cell.type == elem::BORDER);
-	return x[cell.id] / P_dim;
+	const auto& beta = mesh->cells[cell.stencil[1]];
+
+	if (fabs(cell.cent.x - beta.cent.x) > EQUALITY_TOLERANCE)
+		return x[cell.id] / P_dim;
+	else if (fabs(cell.cent.y - beta.cent.y) > EQUALITY_TOLERANCE)
+		return (x[cell.id] - x[beta.id]) / P_dim;
 }
 adouble StochOil::solveSource_Cp(const Well& well, const Cell& cur_cell, const size_t step_idx) const
 {

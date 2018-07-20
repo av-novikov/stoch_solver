@@ -72,8 +72,8 @@ void StochOilMethod::writeData()
 	plot_Q << std::endl;
 	plot_P << std::endl;
 
-	pvd << "\t\t<DataSet part=\"0\" timestep=\"" + to_string(cur_t * t_dim / 3600.0) +
-		"0\" file=\"StochOil_" + to_string(step_idx) + ".vtu\"/>\n";
+	pvd << "\t\t<DataSet part=\"0\" timestep=\"" + std::to_string(cur_t * t_dim / 3600.0) +
+		"0\" file=\"StochOil_" + std::to_string(step_idx) + ".vtu\"/>\n";
 }
 void StochOilMethod::control()
 {

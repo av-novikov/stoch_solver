@@ -158,6 +158,13 @@ void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
 	auto stand_dev = vtkSmartPointer<vtkDoubleArray>::New();
 	stand_dev->SetName("standart_deviation");
 
+	auto q_avg_0 = vtkSmartPointer<vtkDoubleArray>::New();
+	q_avg_0->SetName("q_avg_0");
+	q_avg_0->SetNumberOfComponents(2);
+	auto q_avg_2 = vtkSmartPointer<vtkDoubleArray>::New();
+	q_avg_2->SetName("q_avg_2");
+	q_avg_2->SetNumberOfComponents(2);
+
 	points->Allocate((num_x + 1) * (num_y + 1));
 	cells->Allocate(num_x * num_y);
 	double hx = mesh->hx / (double)num_x;
@@ -171,6 +178,7 @@ void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
 		}
 	grid->SetPoints(points);
 
+	double q_comps[2];
 	size_t x_ind, y_ind;
 	double var;
 	for (const auto& cell : mesh->cells)
@@ -197,7 +205,24 @@ void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
 				stand_dev->InsertNextValue(sqrt(var));
 			else
 				stand_dev->InsertNextValue(0.0);
-			
+
+			const auto& beta_y_minus = mesh->cells[cell.stencil[1]];
+			const auto& beta_y_plus = mesh->cells[cell.stencil[2]];
+			const auto& beta_x_minus = mesh->cells[cell.stencil[3]];
+			const auto& beta_x_plus = mesh->cells[cell.stencil[4]];
+			q_comps[0] = -model->getKg(cell) * (model->p0_next[beta_x_plus.id] - model->p0_next[beta_x_minus.id]) / 
+												(beta_x_plus.cent.x - beta_x_minus.cent.x);
+			q_comps[1] = -model->getKg(cell) * (model->p0_next[beta_y_plus.id] - model->p0_next[beta_y_minus.id]) /
+				(beta_y_plus.cent.y - beta_y_minus.cent.y);
+			q_avg_0->InsertNextTuple(q_comps);
+			q_comps[0] = -model->getKg(cell) * ( (model->p2_next[beta_x_plus.id] - model->p2_next[beta_x_minus.id] + 
+				model->Cfp_prev[cell.id * model->cellsNum + beta_x_plus.id] - model->Cfp_prev[cell.id * model->cellsNum + beta_x_minus.id]) 
+				/ (beta_x_plus.cent.x - beta_x_minus.cent.x) ) - q_comps[0] * model->getSigma2f(cell) / 2.0;
+			q_comps[1] = -model->getKg(cell) * ((model->p2_next[beta_y_plus.id] - model->p2_next[beta_y_minus.id] +
+				model->Cfp_prev[cell.id * model->cellsNum + beta_y_plus.id] - model->Cfp_prev[cell.id * model->cellsNum + beta_y_minus.id])
+				/ (beta_y_plus.cent.y - beta_y_minus.cent.y)) - q_comps[1] * model->getSigma2f(cell) / 2.0;
+			q_avg_2->InsertNextTuple(q_comps);
+
 			/*counter = 0;
 			for (const auto& cur_cell : mesh->cells)
 				if (cur_cell.type == elem::QUAD)
@@ -222,6 +247,8 @@ void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
 		fd->AddArray(Cp_cur);
 	fd->AddArray(variance);
 	fd->AddArray(stand_dev);
+	fd->AddArray(q_avg_0);
+	fd->AddArray(q_avg_2);
 
 	auto writer = vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
 	writer->SetFileName(getFileName(snap_idx).c_str());

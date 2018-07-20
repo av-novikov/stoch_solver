@@ -66,7 +66,7 @@ namespace stoch_oil
 			};
 			return corrFoo1(cell.cent, beta.cent);
 		};
-		inline double getSigmaf(const Cell& cell) const
+		inline double getSigma2f(const Cell& cell) const
 		{
 			return getCf(cell, cell);
 		};
