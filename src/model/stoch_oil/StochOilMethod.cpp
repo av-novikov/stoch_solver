@@ -210,8 +210,12 @@ void StochOilMethod::solveStep_Cfp()
 			solver1.Solve(PRECOND::ILU_SIMPLE);
 			copySolution_Cfp(cell.id, solver1.getSolution());
 			std::cout << std::endl << "Cfp #" << cell.id << std::endl << std::endl;
+
+			solver1.SetSameMatrix();
 		}
 	}
+
+	solver1.Clear();
 }
 void StochOilMethod::solveStep_p2()
 {
@@ -252,9 +256,13 @@ void StochOilMethod::solveStep_Cp()
 				solver1.Solve(PRECOND::ILU_SIMPLE);
 				copySolution_Cp(cell.id, solver1.getSolution(), time_step);
 				std::cout << std::endl << "time step = " << time_step << "\t Cp #" << cell.id << std::endl << std::endl;
+
+				solver1.SetSameMatrix();
 			}
 		}
 	}
+
+	solver1.Clear();
 }
 
 void StochOilMethod::copySolution_p0(const paralution::LocalVector<double>& sol)

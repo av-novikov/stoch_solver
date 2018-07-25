@@ -26,6 +26,8 @@ protected:
 
 	bool isAssembled;
 	bool isPrecondBuilt;
+	bool isTheSameMatrix;
+	bool isCleared;
 	int matSize;
 	RETURN_TYPE status;
 
@@ -45,6 +47,8 @@ public:
 	void Assemble(const int* ind_i, const int* ind_j, const double* a, const int counter, const int* ind_rhs, const double* rhs);
 	void Solve();
 	void Solve(const PRECOND key);
+	void SetSameMatrix();
+	void Clear();
 
 	const Vector& getSolution() { return x; };
 
