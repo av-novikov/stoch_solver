@@ -23,7 +23,7 @@ int main()
 {
 	stoch_oil::Properties props;
 	
-	props.possible_steps_num = 20;
+	props.possible_steps_num = 14;
 	props.t_dim = 3600.0;
 	props.ht = props.ht_min = 5000.0;
 	props.ht_max = 1000000.0;

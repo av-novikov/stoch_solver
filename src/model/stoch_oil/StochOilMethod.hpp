@@ -46,6 +46,7 @@ namespace stoch_oil
 		int* cols1;
 		// Number of non-zero elements in sparse matrix
 		int elemNum1;
+		bool avoidMatrixCalc;
 
 		void computeJac_p0();
 		void computeJac_Cfp(const int cell_id);
