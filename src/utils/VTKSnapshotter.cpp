@@ -153,17 +153,20 @@ void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
 		Cp_well[time_step]->SetName(("Cp_well #" + to_string(time_step)).c_str());
 	}
 
-	auto variance = vtkSmartPointer<vtkDoubleArray>::New();
-	variance->SetName("variance");
-	auto stand_dev = vtkSmartPointer<vtkDoubleArray>::New();
-	stand_dev->SetName("standart_deviation");
-
+	auto p_var = vtkSmartPointer<vtkDoubleArray>::New();
+	p_var->SetName("pres_variance");
+	auto p_std = vtkSmartPointer<vtkDoubleArray>::New();
+	p_std->SetName("pres_standart_deviation");
 	auto q_avg_0 = vtkSmartPointer<vtkDoubleArray>::New();
 	q_avg_0->SetName("q_avg_0");
 	q_avg_0->SetNumberOfComponents(2);
 	auto q_avg_2 = vtkSmartPointer<vtkDoubleArray>::New();
 	q_avg_2->SetName("q_avg_2");
 	q_avg_2->SetNumberOfComponents(2);
+	auto qx_std = vtkSmartPointer<vtkDoubleArray>::New();
+	qx_std->SetName("qx_standart_deviation");
+	auto qy_std = vtkSmartPointer<vtkDoubleArray>::New();
+	qy_std->SetName("qy_standart_deviation");
 
 	points->Allocate((num_x + 1) * (num_y + 1));
 	cells->Allocate(num_x * num_y);
@@ -180,7 +183,7 @@ void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
 
 	double q_comps[2];
 	size_t x_ind, y_ind;
-	double var;
+	double var, Kg, Jx, Jy, dCfp_dx, dCfp_dy, Sigma2;
 	for (const auto& cell : mesh->cells)
 	{
 		if (cell.type == elem::QUAD)
@@ -200,28 +203,54 @@ void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
 			Cfp_well->InsertNextValue(model->Cfp_next[model->wells.back().cell_id * model->cellsNum + cell.id] * model->P_dim / BAR_TO_PA);
 
 			var = model->Cp_next[snap_idx][cell.id * model->cellsNum + cell.id] * model->P_dim / BAR_TO_PA * model->P_dim / BAR_TO_PA;
-			variance->InsertNextValue(var);
+			p_var->InsertNextValue(var);
 			if(var > 0.0)
-				stand_dev->InsertNextValue(sqrt(var));
+				p_std->InsertNextValue(sqrt(var));
 			else
-				stand_dev->InsertNextValue(0.0);
+				p_std->InsertNextValue(0.0);
 
 			const auto& beta_y_minus = mesh->cells[cell.stencil[1]];
 			const auto& beta_y_plus = mesh->cells[cell.stencil[2]];
 			const auto& beta_x_minus = mesh->cells[cell.stencil[3]];
 			const auto& beta_x_plus = mesh->cells[cell.stencil[4]];
-			q_comps[0] = -model->getKg(cell) * (model->p0_next[beta_x_plus.id] - model->p0_next[beta_x_minus.id]) / 
-												(beta_x_plus.cent.x - beta_x_minus.cent.x);
-			q_comps[1] = -model->getKg(cell) * (model->p0_next[beta_y_plus.id] - model->p0_next[beta_y_minus.id]) /
-				(beta_y_plus.cent.y - beta_y_minus.cent.y);
+
+			Kg = model->getKg(cell);
+			Jx = -(model->p0_next[beta_x_plus.id] - model->p0_next[beta_x_minus.id]) / (beta_x_plus.cent.x - beta_x_minus.cent.x);
+			Jy = -(model->p0_next[beta_y_plus.id] - model->p0_next[beta_y_minus.id]) / (beta_y_plus.cent.y - beta_y_minus.cent.y);
+			dCfp_dx = (model->Cfp_prev[cell.id * model->cellsNum + beta_x_plus.id] - model->Cfp_prev[cell.id * model->cellsNum + beta_x_minus.id]) / 
+						(beta_x_plus.cent.x - beta_x_minus.cent.x);
+			dCfp_dy = (model->Cfp_prev[cell.id * model->cellsNum + beta_y_plus.id] - model->Cfp_prev[cell.id * model->cellsNum + beta_y_minus.id]) / 
+						(beta_y_plus.cent.y - beta_y_minus.cent.y);
+			Sigma2 = model->getSigma2f(cell);
+
+			q_comps[0] = Kg * Jx * model->Q_dim * 86400.0;
+			q_comps[1] = Kg * Jy * model->Q_dim * 86400.0;
 			q_avg_0->InsertNextTuple(q_comps);
-			q_comps[0] = -model->getKg(cell) * ( (model->p2_next[beta_x_plus.id] - model->p2_next[beta_x_minus.id] + 
-				model->Cfp_prev[cell.id * model->cellsNum + beta_x_plus.id] - model->Cfp_prev[cell.id * model->cellsNum + beta_x_minus.id]) 
-				/ (beta_x_plus.cent.x - beta_x_minus.cent.x) ) - q_comps[0] * model->getSigma2f(cell) / 2.0;
-			q_comps[1] = -model->getKg(cell) * ((model->p2_next[beta_y_plus.id] - model->p2_next[beta_y_minus.id] +
-				model->Cfp_prev[cell.id * model->cellsNum + beta_y_plus.id] - model->Cfp_prev[cell.id * model->cellsNum + beta_y_minus.id])
-				/ (beta_y_plus.cent.y - beta_y_minus.cent.y)) - q_comps[1] * model->getSigma2f(cell) / 2.0;
+			q_comps[0] = -Kg * ( (model->p2_next[beta_x_plus.id] - model->p2_next[beta_x_minus.id])	/ 
+				(beta_x_plus.cent.x - beta_x_minus.cent.x) + dCfp_dx ) * model->Q_dim * 86400.0 - q_comps[0] * Sigma2 / 2.0;
+			q_comps[1] = -Kg * ((model->p2_next[beta_y_plus.id] - model->p2_next[beta_y_minus.id]) / 
+				(beta_y_plus.cent.y - beta_y_minus.cent.y) + dCfp_dy ) * model->Q_dim * 86400.0 - q_comps[1] * Sigma2 / 2.0;
 			q_avg_2->InsertNextTuple(q_comps);
+
+			var = Kg * Kg * (Jx * Jx * Sigma2 - 2.0 * Jx * dCfp_dx + 
+			((model->Cp_next[snap_idx][model->cellsNum * beta_x_plus.id + beta_x_plus.id] - model->Cp_next[snap_idx][model->cellsNum * beta_x_minus.id + beta_x_plus.id]) /
+				(beta_x_plus.cent.x - beta_x_minus.cent.x) - 
+			(model->Cp_next[snap_idx][model->cellsNum * beta_x_plus.id + beta_x_minus.id] - model->Cp_next[snap_idx][model->cellsNum * beta_x_minus.id + beta_x_minus.id]) / 
+				(beta_x_plus.cent.x - beta_x_minus.cent.x)) / (beta_x_plus.cent.x - beta_x_minus.cent.x)) * model->Q_dim * 86400.0 * model->Q_dim * 86400.0;
+			if (var > 0.0)
+				qx_std->InsertNextValue(sqrt(var));
+			else
+				qx_std->InsertNextValue(0.0);
+
+			var = Kg * Kg * (Jy * Jy * Sigma2 - 2.0 * Jy * dCfp_dy +
+			((model->Cp_next[snap_idx][model->cellsNum * beta_y_plus.id + beta_y_plus.id] - model->Cp_next[snap_idx][model->cellsNum * beta_y_minus.id + beta_y_plus.id]) /
+				(beta_y_plus.cent.y - beta_y_minus.cent.y) -
+			(model->Cp_next[snap_idx][model->cellsNum * beta_y_plus.id + beta_y_minus.id] - model->Cp_next[snap_idx][model->cellsNum * beta_y_minus.id + beta_y_minus.id]) /
+				(beta_y_plus.cent.y - beta_y_minus.cent.y)) / (beta_y_plus.cent.y - beta_y_minus.cent.y)) * model->Q_dim * 86400.0 * model->Q_dim * 86400.0;
+			if (var > 0.0)
+				qy_std->InsertNextValue(sqrt(var));
+			else
+				qy_std->InsertNextValue(0.0);
 
 			/*counter = 0;
 			for (const auto& cur_cell : mesh->cells)
@@ -232,7 +261,7 @@ void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
 				}*/
 
 			for (size_t time_step = 0; time_step < model->possible_steps_num; time_step++)
-				Cp_well[time_step]->InsertNextValue(model->Cp_next[time_step][model->wells.back().cell_id * model->cellsNum + cell.id]);
+				Cp_well[time_step]->InsertNextValue(model->Cp_next[time_step][model->wells.back().cell_id * model->cellsNum + cell.id] * model->P_dim / BAR_TO_PA * model->P_dim / BAR_TO_PA);
 		}
 	}
 	grid->SetCells(VTK_QUAD, cells);
@@ -245,10 +274,12 @@ void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
 	//	fd->AddArray(Cfp_cur);
 	for (const auto& Cp_cur : Cp_well)
 		fd->AddArray(Cp_cur);
-	fd->AddArray(variance);
-	fd->AddArray(stand_dev);
+	fd->AddArray(p_var);
+	fd->AddArray(p_std);
 	fd->AddArray(q_avg_0);
 	fd->AddArray(q_avg_2);
+	fd->AddArray(qx_std);
+	fd->AddArray(qy_std);
 
 	auto writer = vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
 	writer->SetFileName(getFileName(snap_idx).c_str());
