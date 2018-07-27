@@ -247,7 +247,11 @@ void StochOilMethod::solveStep_p2()
 }
 void StochOilMethod::solveStep_Cp()
 {
-	for (size_t time_step = 1; time_step < step_idx + 1; time_step++)
+	int start_idx = 1;
+	if (step_idx > model->start_time_simple_approx);
+		start_idx = step_idx;
+
+	for (size_t time_step = start_idx; time_step < step_idx + 1; time_step++)
 	{
 		for (const auto& cell : mesh->cells)
 		{

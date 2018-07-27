@@ -28,7 +28,7 @@ namespace stoch_oil
 		adouble* x;
 		adouble* h;
 
-		size_t possible_steps_num;
+		size_t possible_steps_num, start_time_simple_approx;
 		Skeleton_Props props_sk;
 		Oil_Props props_oil;
 		std::vector<Well> wells;

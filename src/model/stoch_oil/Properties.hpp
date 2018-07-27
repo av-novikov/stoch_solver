@@ -44,7 +44,7 @@ namespace stoch_oil
 	struct Properties
 	{
 		double ht, ht_min, ht_max;
-		size_t possible_steps_num;
+		size_t possible_steps_num, start_time_simple_approx;
 
 		Skeleton_Props props_sk;
 		Oil_Props props_oil;

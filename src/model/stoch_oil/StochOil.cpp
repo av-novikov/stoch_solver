@@ -21,6 +21,7 @@ void StochOil::setProps(const Properties& props)
 	Q_dim = R_dim * R_dim * R_dim / t_dim;
 
 	possible_steps_num = props.possible_steps_num;
+	start_time_simple_approx = props.start_time_simple_approx;
 	ht = props.ht;
 	ht_min = props.ht_min;
 	ht_max = props.ht_max;
@@ -341,7 +342,11 @@ adouble StochOil::solveInner_Cp(const Cell& cell, const Cell& cur_cell, const si
 {
 	assert(cell.type == elem::QUAD && cur_cell.type == elem::QUAD);
 	const auto& next = x[cell.id];
-	const auto prev = Cp_prev[step_idx][cur_cell.id * cellsNum + cell.id];
+	double prev;
+	if(step_idx > start_time_simple_approx)
+		prev = Cp_prev[step_idx - 1][cur_cell.id * cellsNum + cell.id];
+	else
+		prev = Cp_next[step_idx - 1][cur_cell.id * cellsNum + cell.id];
 
 	adouble H;
 	H = getS(cell) * (next - prev) / getKg(cell);
