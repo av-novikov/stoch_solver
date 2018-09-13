@@ -223,20 +223,20 @@ void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
 						(beta_y_plus.cent.y - beta_y_minus.cent.y);
 			Sigma2 = model->getSigma2f(cell);
 
-			q_comps[0] = Kg * Jx * model->Q_dim * 86400.0;
-			q_comps[1] = Kg * Jy * model->Q_dim * 86400.0;
+			q_comps[0] = Kg * Jx * cell.hy * cell.hz * model->Q_dim * 86400.0;
+			q_comps[1] = Kg * Jy * cell.hx * cell.hz * model->Q_dim * 86400.0;
 			q_avg_0->InsertNextTuple(q_comps);
 			q_comps[0] = -Kg * ( (model->p2_next[beta_x_plus.id] - model->p2_next[beta_x_minus.id])	/ 
-				(beta_x_plus.cent.x - beta_x_minus.cent.x) + dCfp_dx ) * model->Q_dim * 86400.0 - q_comps[0] * Sigma2 / 2.0;
+				(beta_x_plus.cent.x - beta_x_minus.cent.x) + dCfp_dx ) * cell.hy * cell.hz * model->Q_dim * 86400.0 - q_comps[0] * Sigma2 / 2.0;
 			q_comps[1] = -Kg * ((model->p2_next[beta_y_plus.id] - model->p2_next[beta_y_minus.id]) / 
-				(beta_y_plus.cent.y - beta_y_minus.cent.y) + dCfp_dy ) * model->Q_dim * 86400.0 - q_comps[1] * Sigma2 / 2.0;
+				(beta_y_plus.cent.y - beta_y_minus.cent.y) + dCfp_dy ) * cell.hx * cell.hz * model->Q_dim * 86400.0 - q_comps[1] * Sigma2 / 2.0;
 			q_avg_2->InsertNextTuple(q_comps);
 
 			var = Kg * Kg * (Jx * Jx * Sigma2 - 2.0 * Jx * dCfp_dx + 
 			((model->Cp_next[snap_idx][model->cellsNum * beta_x_plus.id + beta_x_plus.id] - model->Cp_next[snap_idx][model->cellsNum * beta_x_minus.id + beta_x_plus.id]) /
 				(beta_x_plus.cent.x - beta_x_minus.cent.x) - 
 			(model->Cp_next[snap_idx][model->cellsNum * beta_x_plus.id + beta_x_minus.id] - model->Cp_next[snap_idx][model->cellsNum * beta_x_minus.id + beta_x_minus.id]) / 
-				(beta_x_plus.cent.x - beta_x_minus.cent.x)) / (beta_x_plus.cent.x - beta_x_minus.cent.x)) * model->Q_dim * 86400.0 * model->Q_dim * 86400.0;
+				(beta_x_plus.cent.x - beta_x_minus.cent.x)) / (beta_x_plus.cent.x - beta_x_minus.cent.x)) * cell.hy * cell.hz * cell.hy * cell.hz * model->Q_dim * 86400.0 * model->Q_dim * 86400.0;
 			if (var > 0.0)
 				qx_std->InsertNextValue(sqrt(var));
 			else
@@ -246,7 +246,7 @@ void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
 			((model->Cp_next[snap_idx][model->cellsNum * beta_y_plus.id + beta_y_plus.id] - model->Cp_next[snap_idx][model->cellsNum * beta_y_minus.id + beta_y_plus.id]) /
 				(beta_y_plus.cent.y - beta_y_minus.cent.y) -
 			(model->Cp_next[snap_idx][model->cellsNum * beta_y_plus.id + beta_y_minus.id] - model->Cp_next[snap_idx][model->cellsNum * beta_y_minus.id + beta_y_minus.id]) /
-				(beta_y_plus.cent.y - beta_y_minus.cent.y)) / (beta_y_plus.cent.y - beta_y_minus.cent.y)) * model->Q_dim * 86400.0 * model->Q_dim * 86400.0;
+				(beta_y_plus.cent.y - beta_y_minus.cent.y)) / (beta_y_plus.cent.y - beta_y_minus.cent.y)) * cell.hx * cell.hz * cell.hx * cell.hz * model->Q_dim * 86400.0 * model->Q_dim * 86400.0;
 			if (var > 0.0)
 				qy_std->InsertNextValue(sqrt(var));
 			else

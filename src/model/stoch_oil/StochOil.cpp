@@ -189,12 +189,7 @@ adouble StochOil::solveBorder_p0(const Cell& cell) const
 	const auto& cur = x[cell.id];
 	const auto& nebr = x[cell.stencil[1]];
 
-	if (cell.cent.x - beta.cent.x > EQUALITY_TOLERANCE)
-		return (cur - 0.5 * (adouble)(props_sk.p_out)) / P_dim;
-	else if (cell.cent.x - beta.cent.x < -EQUALITY_TOLERANCE)
-		return (cur - 1.5 * (adouble)(props_sk.p_out)) / P_dim;
-	else if (fabs(cell.cent.y - beta.cent.y) > EQUALITY_TOLERANCE)
-		return (cur - nebr) / P_dim;
+	return (cur - (adouble)(props_sk.p_out)) / P_dim;
 }
 adouble StochOil::solveSource_p0(const Well& well) const
 {
@@ -255,11 +250,7 @@ adouble StochOil::solveBorder_Cfp(const Cell& cell, const Cell& cur_cell) const
 {
 	assert(cell.type == elem::BORDER || cur_cell.type == elem::BORDER);
 	const auto& beta = mesh->cells[cell.stencil[1]];
-
-	if (fabs(cell.cent.x - beta.cent.x) > EQUALITY_TOLERANCE)
-		return x[cell.id] / P_dim;
-	else if (fabs(cell.cent.y - beta.cent.y) > EQUALITY_TOLERANCE)
-		return (x[cell.id] - x[beta.id]) / P_dim;
+	return x[cell.id] / P_dim;
 }
 adouble StochOil::solveSource_Cfp(const Well& well, const Cell& cur_cell) const
 {
@@ -323,11 +314,7 @@ adouble StochOil::solveBorder_p2(const Cell& cell) const
 {
 	assert(cell.type == elem::BORDER);
 	const auto& beta = mesh->cells[cell.stencil[1]];
-
-	if (fabs(cell.cent.x - beta.cent.x) > EQUALITY_TOLERANCE)
-		return x[cell.id] / P_dim;
-	else if (fabs(cell.cent.y - beta.cent.y) > EQUALITY_TOLERANCE)
-		return (x[cell.id] - x[beta.id]) / P_dim;
+	return x[cell.id] / P_dim;
 }
 adouble StochOil::solveSource_p2(const Well& well) const
 {
@@ -391,11 +378,7 @@ adouble StochOil::solveBorder_Cp(const Cell& cell, const Cell& cur_cell, const s
 {
 	assert(cell.type == elem::BORDER || cur_cell.type == elem::BORDER);
 	const auto& beta = mesh->cells[cell.stencil[1]];
-
-	if (fabs(cell.cent.x - beta.cent.x) > EQUALITY_TOLERANCE)
-		return x[cell.id] / P_dim;
-	else if (fabs(cell.cent.y - beta.cent.y) > EQUALITY_TOLERANCE)
-		return (x[cell.id] - x[beta.id]) / P_dim;
+	return x[cell.id] / P_dim;
 }
 adouble StochOil::solveSource_Cp(const Well& well, const Cell& cur_cell, const size_t step_idx) const
 {

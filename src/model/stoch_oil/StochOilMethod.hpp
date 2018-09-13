@@ -25,6 +25,11 @@ namespace stoch_oil
 		double averVal, averValPrev, dAverVal;
 
 		static const int var_size = 1;
+		
+		double* dmat;
+		int* offset;
+		int* col;
+
 		double** jac0;
 		double* y0;
 		int* ind_i0;
@@ -60,8 +65,12 @@ namespace stoch_oil
 		void fill_Cp(const int cell_id, const size_t time_step);
 		void copySolution_p0(const paralution::LocalVector<double>& sol);
 		void copySolution_Cfp(const int cell_id, const paralution::LocalVector<double>& sol);
+		void copySolution_Cfp(const int cell_id);
 		void copySolution_p2(const paralution::LocalVector<double>& sol);
 		void copySolution_Cp(const int cell_id, const paralution::LocalVector<double>& sol, const size_t time_step);
+		void copySolution_Cp(const int cell_id, const size_t time_step);
+		void checkInvertMatrix() const;
+
 
 		void copyTimeLayer();
 		void copyIterLayer_p0();

@@ -1,4 +1,4 @@
-#ifndef PARALUTIONINTERFACE_H_
+﻿#ifndef PARALUTIONINTERFACE_H_
 #define PARALUTIONINTERFACE_H_
 
 #include <string>
@@ -51,6 +51,22 @@ public:
 	void Clear();
 
 	const Vector& getSolution() { return x; };
+	void getInvert(const int* ind_i, const int* ind_j, const double* a, const int counter, int*& offset, int*& col, double*& dmat)
+	{
+		Mat.Zeros();
+		Mat.Assemble(ind_i, ind_j, a, counter, "A", matSize, matSize);
+		Mat.Invert();
+		/*Mat.LeaveDataPtrDENSE(&dmat);
+		double tmp;
+		for (int i = 0; i < matSize; i++)
+			for (int j = i + 1; j < matSize; j++)
+			{
+				tmp = dmat[i * matSize + j];
+				dmat[i * matSize + j] = dmat[j * matSize + i];
+				dmat[j * matSize + i] = tmp;
+			}*/
+		Mat.LeaveDataPtrCSR(&offset, &col, &dmat);
+	};
 
 	ParSolver();
 	~ParSolver();

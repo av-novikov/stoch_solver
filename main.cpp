@@ -51,7 +51,7 @@ int main()
 	well1.period.resize(well1.periodsNum);
 	well1.period[0] = 365.0 * 86400.0;
 	well1.rate.resize(well1.periodsNum);
-	well1.rate[0] = 0.0;// 50.0;
+	well1.rate[0] = 50.0;
 	well1.pwf.resize(well1.periodsNum);
 	//well1.pwf[0] = 82.0 * BAR_TO_PA;
 	well1.leftBoundIsRate.resize(well1.periodsNum);

@@ -27,8 +27,7 @@ StochOilMethod::StochOilMethod(Model* _model) : AbstractMethod<Model>(_model)
 	a1 = new double[Mesh::stencil * strNum1];
 	ind_rhs1 = new int[strNum1];
 	rhs1 = new double[strNum1];
-	
-	avoidMatrixCalc = false;
+
 	//options[0] = 0;          /* sparsity pattern by index domains (default) */
 	//options[1] = 0;          /*                         safe mode (default) */
 	//options[2] = 0;          /*              not required if options[0] = 0 */
@@ -169,6 +168,10 @@ void StochOilMethod::fillIndices1()
 
 void StochOilMethod::solveStep()
 {
+	col = offset = NULL;
+	dmat = NULL;
+	avoidMatrixCalc = false;
+
 	solveStep_p0();
 	solveStep_Cfp();
 	solveStep_p2();
@@ -207,18 +210,42 @@ void StochOilMethod::solveStep_Cfp()
 		{
 			computeJac_Cfp(cell.id);
 			fill_Cfp(cell.id);
-			solver1.Assemble(ind_i1, ind_j1, a1, elemNum1, ind_rhs1, rhs1);
-			solver1.Solve(PRECOND::ILU_SIMPLE);
-			copySolution_Cfp(cell.id, solver1.getSolution());
-			std::cout << std::endl << "Cfp #" << cell.id << std::endl << std::endl;
-
+			if (!avoidMatrixCalc)
+			{
+				solver1.getInvert(ind_i1, ind_j1, a1, elemNum1, offset, col, dmat);
+				//checkInvertMatrix();
+				avoidMatrixCalc = true;
+			}
+			copySolution_Cfp(cell.id);
+			std::cout << "Cfp #" << cell.id << std::endl;
 			solver1.SetSameMatrix();
-			avoidMatrixCalc = true;
 		}
 	}
+}
+void StochOilMethod::checkInvertMatrix() const 
+{
+	size_t ind, end_idx = 0;
+	double val;
+	for (size_t i = 0; i < size; i++)
+	{
+		for (size_t j = 0; j < size; j++)
+		{
+			val = 0.0;
+			ind = end_idx;
+			for (size_t k = 0; k < size; k++)
+			{
+				if (ind_i1[ind] == i && ind_j1[ind] == k)
+					val += dmat[k * size + j] * a1[ind++];
+			}
 
-	solver1.Clear();
-	avoidMatrixCalc = false;
+			if (i == j)
+				assert(fabs(val - 1.0) < 1.E-6);
+			else
+				assert(fabs(val) < 1.E-6);
+
+		}
+		end_idx = ind;
+	}
 }
 void StochOilMethod::solveStep_p2()
 {
@@ -259,19 +286,11 @@ void StochOilMethod::solveStep_Cp()
 			{
 				computeJac_Cp(cell.id, time_step);
 				fill_Cp(cell.id, time_step);
-				solver1.Assemble(ind_i1, ind_j1, a1, elemNum1, ind_rhs1, rhs1);
-				solver1.Solve(PRECOND::ILU_SIMPLE);
-				copySolution_Cp(cell.id, solver1.getSolution(), time_step);
-				std::cout << std::endl << "time step = " << time_step << "\t Cp #" << cell.id << std::endl << std::endl;
-
-				solver1.SetSameMatrix();
-				avoidMatrixCalc = true;
+				copySolution_Cp(cell.id, time_step);
+				std::cout << "time step = " << time_step << "\t Cp #" << cell.id << std::endl;
 			}
 		}
 	}
-
-	solver1.Clear();
-	avoidMatrixCalc = false;
 }
 
 void StochOilMethod::copySolution_p0(const paralution::LocalVector<double>& sol)
@@ -284,6 +303,17 @@ void StochOilMethod::copySolution_Cfp(const int cell_id, const paralution::Local
 	for (int i = 0; i < size; i++)
 		model->Cfp_next[cell_id * size + i] += sol[i];
 }
+void StochOilMethod::copySolution_Cfp(const int cell_id)
+{
+	double s;
+	for (size_t i = 0; i < size; i++)
+	{
+		s = 0.0;
+		for (size_t j = offset[i]; j < offset[i + 1]; j++)
+			s += dmat[j] * rhs1[col[j]];
+		model->Cfp_next[cell_id * size + i] += s;
+	}
+}
 void StochOilMethod::copySolution_p2(const paralution::LocalVector<double>& sol)
 {
 	for (int i = 0; i < size; i++)
@@ -291,8 +321,19 @@ void StochOilMethod::copySolution_p2(const paralution::LocalVector<double>& sol)
 }
 void StochOilMethod::copySolution_Cp(const int cell_id, const paralution::LocalVector<double>& sol, const size_t time_step)
 {
-	for (int i = 0; i < size; i++)
+	for (size_t i = 0; i < size; i++)
 		model->Cp_next[time_step][cell_id * size + i] += sol[i];
+}
+void StochOilMethod::copySolution_Cp(const int cell_id, const size_t time_step)
+{
+	double s;
+	for (size_t i = 0; i < size; i++)
+	{
+		s = 0.0;
+		for (size_t j = offset[i]; j < offset[i + 1]; j++)
+			s += dmat[j] * rhs1[col[j]];
+		model->Cp_next[time_step][cell_id * size + i] += s;
+	}
 }
 
 void StochOilMethod::computeJac_p0()
@@ -333,12 +374,12 @@ void StochOilMethod::computeJac_Cfp(const int cell_id)
 		const auto& cell = mesh->cells[i];
 
 		if (cell.type == elem::QUAD)
-			model->h[i] = model->solveInner_Cfp(cell, cur_cell);
+			model->h[i] = model->solveInner_Cfp(cell, cur_cell) / model->P_dim;
 		else if (cell.type == elem::BORDER)
 			model->h[i] = model->solveBorder_Cfp(cell, cur_cell);
 	}
 	for (const auto& well : model->wells)
-		model->h[well.cell_id] += model->solveSource_Cfp(well, cur_cell);
+		model->h[well.cell_id] += model->solveSource_Cfp(well, cur_cell) / model->P_dim;
 
 	for (int i = 0; i < size; i++)
 		model->h[i] >>= y1[i];
@@ -383,12 +424,12 @@ void StochOilMethod::computeJac_Cp(const int cell_id, const size_t time_step)
 		const auto& cell = mesh->cells[i];
 
 		if (cell.type == elem::QUAD)
-			model->h[i] = model->solveInner_Cp(cell, cur_cell, time_step, step_idx);
+			model->h[i] = model->solveInner_Cp(cell, cur_cell, time_step, step_idx) / model->P_dim;
 		else if (cell.type == elem::BORDER)
 			model->h[i] = model->solveBorder_Cp(cell, cur_cell, time_step);
 	}
 	for (const auto& well : model->wells)
-		model->h[well.cell_id] += model->solveSource_Cp(well, cur_cell, time_step);
+		model->h[well.cell_id] += model->solveSource_Cp(well, cur_cell, time_step) / model->P_dim;
 
 	for (int i = 0; i < size; i++)
 		model->h[i] >>= y1[i];
