@@ -30,7 +30,7 @@ int main()
 	props.ht_max = 1000000.0;
 
 	props.hx = props.hy = props.R_dim = 2100.0;		props.hz = 10.0;
-	props.num_x = props.num_y = 21;
+	props.num_x = props.num_y = 41;
 	size_t num = (props.num_x + 2) * (props.num_y + 2);
 
 	props.props_sk.p_init = props.props_sk.p_out = 100.0 * BAR_TO_PA;
@@ -45,7 +45,7 @@ int main()
 	props.props_oil.beta = 1.0 * 1.e-9;
 	props.props_oil.p_ref = props.props_sk.p_init;
 
-	props.wells.push_back(Well(0, (props.num_y + 2) * int((props.num_x + 2) / 2) + (props.num_y + 2) / 2));
+	props.wells.push_back(Well(0, (props.num_y + 2) * int(3 * (props.num_x + 2) / 4) + 3 * (props.num_y + 2) / 4));
 	auto& well1 = props.wells.back();
 	well1.periodsNum = 1;
 	well1.period.resize(well1.periodsNum);
@@ -58,16 +58,16 @@ int main()
 	well1.leftBoundIsRate[0] = true;
 	well1.rw = 0.1;
 
-	/*props.wells.push_back(Well(1, (props.num_y + 2) * int((props.num_x + 2) / 4) + (props.num_y + 2) / 4));
+	props.wells.push_back(Well(1, (props.num_y + 2) * int((props.num_x + 2) / 4) + (props.num_y + 2) / 4));
 	auto& well2 = props.wells.back();
 	well2.periodsNum = 1;
 	well2.period.resize(well2.periodsNum);
-	well2.period[0] = 31.0 * 86400.0;
+	well2.period[0] = 365.0 * 86400.0;
 	well2.rate.resize(well2.periodsNum);
-	well2.rate[0] = 50.0;
+	well2.rate[0] = -50.0;
 	well2.leftBoundIsRate.resize(well2.periodsNum);
 	well2.leftBoundIsRate[0] = true;
-	well2.rw = 0.1;*/
+	well2.rw = 0.1;
 
 	Scene<issues::StochOil> scene;
 	scene.load(props);
