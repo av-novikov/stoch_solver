@@ -196,6 +196,17 @@ void StochOil::setInitialState()
 		well.WI = 2.0 * M_PI * props_sk.perm * cell.hz / log(well.r_peaceman / well.rw);
 	}
 
+    Favg.resize(cellsNum, 0.0);
+    Cf.resize(cellsNum);
+    std::for_each(Cf.begin(), Cf.end(), [&](std::vector<double>& vec) { vec.resize(cellsNum, 0.0); });
+    for (int i = 0; i < cellsNum; i++)
+    {
+        const Cell& cell1 = mesh->cells[i];
+        Favg[i] = getFavg_prior(cell1);
+        for (int j = 0; j < cellsNum; j++)
+            Cf[i][j] = getCf_prior(cell1, mesh->cells[j]);
+    }
+    // Conditioning
     calculateConditioning();
 }
 void StochOil::setPeriod(const int period)

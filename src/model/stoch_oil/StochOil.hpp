@@ -83,98 +83,94 @@ namespace stoch_oil
         void calculateConditioning()
         {
             const int matSize = conditions.size() * conditions.size();
-            int* ind_i = new int[matSize];
-            int* ind_j = new int[matSize];
-            double* cond_cov = new double[matSize];
 
-            int counter = 0;
-            for (int i = 0; i < conditions.size(); i++)
+            if (matSize > 0)
             {
-                const auto& cell1 = mesh->cells[conditions[i].id];
-                for (int j = 0; j < conditions.size(); j++)
-                {
-                    const auto& cell2 = mesh->cells[conditions[j].id];
+                int* ind_i = new int[matSize];
+                int* ind_j = new int[matSize];
+                double* cond_cov = new double[matSize];
 
-                    ind_i[counter] = i;     ind_j[counter] = j;
-                    cond_cov[counter] = getCf_prior(cell1, cell2);
-                    counter++;
+                int counter = 0;
+                for (int i = 0; i < conditions.size(); i++)
+                {
+                    const auto& cell1 = mesh->cells[conditions[i].id];
+                    for (int j = 0; j < conditions.size(); j++)
+                    {
+                        const auto& cell2 = mesh->cells[conditions[j].id];
+
+                        ind_i[counter] = i;     ind_j[counter] = j;
+                        cond_cov[counter] = getCf_prior(cell1, cell2);
+                        counter++;
+                    }
                 }
-            }
 
-            paralution::LocalMatrix<double> A;
-            paralution::Inversion<paralution::LocalMatrix<double>, paralution::LocalVector<double>, double> ls;
-            A.Assemble(ind_i, ind_j, cond_cov, matSize, "A", conditions.size(), conditions.size());
-            ls.SetOperator(A);
-            ls.Build();
-            ls.inverse_.LeaveDataPtrDENSE(&inv_cond_cov);
-            ls.Clear();
+                paralution::LocalMatrix<double> A;
+                paralution::Inversion<paralution::LocalMatrix<double>, paralution::LocalVector<double>, double> ls;
+                A.Assemble(ind_i, ind_j, cond_cov, matSize, "A", conditions.size(), conditions.size());
+                ls.SetOperator(A);
+                ls.Build();
+                ls.inverse_.LeaveDataPtrDENSE(&inv_cond_cov);
+                ls.Clear();
 
-            double s;
-            // Check inversion
-            /*counter = 0;
-            for (int i = 0; i < conditions.size(); i++)
-            {
-                for (int j = 0; j < conditions.size(); j++)
+                double s;
+                // Check inversion
+                /*counter = 0;
+                for (int i = 0; i < conditions.size(); i++)
                 {
-                    s = 0.0;
+                    for (int j = 0; j < conditions.size(); j++)
+                    {
+                        s = 0.0;
+                        for (int k = 0; k < conditions.size(); k++)
+                        {
+                            double q1 = cond_cov[i * conditions.size() + k];
+                            double q2 = inv_cond_cov[k * conditions.size() + j];
+                             s += q1 * q2;
+                        }
+                        if(i == j)
+                            assert(fabs(s - 1) < EQUALITY_TOLERANCE);
+                        else
+                            assert(fabs(s) < EQUALITY_TOLERANCE);
+                    }
+                }*/
+                delete[] ind_i, ind_j;
+                delete[] cond_cov;
+
+                std::vector<std::vector<double>> mult_mat;
+                mult_mat.resize(cellsNum);
+                std::for_each(mult_mat.begin(), mult_mat.end(), [&](std::vector<double>& vec) { vec.resize(conditions.size(), 0.0); });
+                for (int i = 0; i < cellsNum; i++)
+                {
+                    const Cell& cell = mesh->cells[i];
                     for (int k = 0; k < conditions.size(); k++)
                     {
-                        double q1 = cond_cov[i * conditions.size() + k];
-                        double q2 = inv_cond_cov[k * conditions.size() + j];
-                         s += q1 * q2;
+                        const Cell& c_cell = mesh->cells[conditions[k].id];
+                        s = 0.0;
+                        for (int k1 = 0; k1 < conditions.size(); k1++)
+                        {
+                            const Cell& c_cell1 = mesh->cells[conditions[k1].id];
+                            s += getCf_prior(cell, c_cell1) * inv_cond_cov[k1 * conditions.size() + k];
+                        }
+                        mult_mat[i][k] = s;
                     }
-                    if(i == j)
-                        assert(fabs(s - 1) < EQUALITY_TOLERANCE);
-                    else
-                        assert(fabs(s) < EQUALITY_TOLERANCE);
                 }
-            }*/
-            delete[] ind_i, ind_j;
-            delete[] cond_cov;
 
-            Favg.resize(cellsNum, 0.0);
-            Cf.resize(cellsNum);
-            std::for_each(Cf.begin(), Cf.end(), [&](std::vector<double>& vec) { vec.resize(cellsNum, 0.0); });
-
-            std::vector<std::vector<double>> mult_mat;
-            mult_mat.resize(cellsNum);
-            std::for_each(mult_mat.begin(), mult_mat.end(), [&](std::vector<double>& vec) { vec.resize(conditions.size(), 0.0); });
-            for (int i = 0; i < cellsNum; i++)
-            {
-                const Cell& cell = mesh->cells[i];
-                for (int k = 0; k < conditions.size(); k++)
+                for (int i = 0; i < cellsNum; i++)
                 {
-                    const Cell& c_cell = mesh->cells[conditions[k].id];
-                    s = 0.0;
-                    for (int k1 = 0; k1 < conditions.size(); k1++)
-                    {
-                        const Cell& c_cell1 = mesh->cells[conditions[k1].id];
-                        s += getCf_prior(cell, c_cell1) * inv_cond_cov[k1 * conditions.size() + k];
-                    }
-                    mult_mat[i][k] = s;
-                }
-            }
-
-            for (int i = 0; i < cellsNum; i++)
-            {
-                const Cell& cell1 = mesh->cells[i];
-                // Average
-                Favg[i] = getFavg_prior(mesh->cells[i]);
-                for (int k2 = 0; k2 < conditions.size(); k2++)
-                {
-                    const auto& cond = conditions[k2];
-                    Favg[i] += mult_mat[i][k2] * (log(cond.perm / props_oil.visc) - getFavg_prior(mesh->cells[cond.id]));
-                }   
-                // Covariance
-                for (int j = 0; j < cellsNum; j++)
-                {
-                    const Cell& cell2 = mesh->cells[j];
-                    Cf[i][j] = getCf_prior(cell1, cell2);
-
+                    const Cell& cell1 = mesh->cells[i];
                     for (int k2 = 0; k2 < conditions.size(); k2++)
                     {
                         const auto& cond = conditions[k2];
-                        Cf[i][j] -= mult_mat[i][k2] * getCf_prior(mesh->cells[cond.id], cell2);
+                        Favg[i] += mult_mat[i][k2] * (log(cond.perm / props_oil.visc) - getFavg_prior(mesh->cells[cond.id]));
+                    }
+                    // Covariance
+                    for (int j = 0; j < cellsNum; j++)
+                    {
+                        const Cell& cell2 = mesh->cells[j];
+                        for (int k2 = 0; k2 < conditions.size(); k2++)
+                        {
+                            const auto& cond = conditions[k2];
+                            Cf[i][j] -= mult_mat[i][k2] * getCf_prior(mesh->cells[cond.id], cell2);
+                        }
                     }
                 }
             }
