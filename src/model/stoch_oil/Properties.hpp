@@ -18,6 +18,7 @@ namespace stoch_oil
 		double beta;
 
 		double perm;
+        std::vector<double> perm_grd;
 		double sigma_f, l_f;
 	};
 	struct Oil_Props
@@ -41,10 +42,15 @@ namespace stoch_oil
 		};
 
 	};
+    struct Measurement
+    {
+        int id;
+        double perm;
+    };
 	struct Properties
 	{
 		double ht, ht_min, ht_max;
-		size_t possible_steps_num, start_time_simple_approx;
+		int possible_steps_num, start_time_simple_approx;
 
 		Skeleton_Props props_sk;
 		Oil_Props props_oil;
@@ -54,6 +60,8 @@ namespace stoch_oil
 
 		int num_x, num_y;
 		double hx, hy, hz;
+
+        std::vector<Measurement> conditions;
 	};
 };
 

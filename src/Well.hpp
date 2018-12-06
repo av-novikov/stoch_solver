@@ -9,10 +9,10 @@
 class Well
 {
 public:
-	size_t id;
-	size_t cell_id;
+	int id;
+	int cell_id;
 	// Number of periods
-	size_t periodsNum;
+	int periodsNum;
 	// End times of periods [sec]
 	std::valarray<double> period;
 	// Oil rates [m3/day]
@@ -22,13 +22,13 @@ public:
 	// If left boundary condition would be 2nd type
 	std::valarray<bool> leftBoundIsRate;
 
-	size_t cur_period;
+	int cur_period;
 	double cur_rate, cur_pwf;
 	bool cur_bound;
 
 	double rw, r_peaceman, WI;
 
-	Well(const size_t _id, const size_t _cell_id) : id(_id), cell_id(_cell_id) {};
+	Well(const int _id, const int _cell_id) : id(_id), cell_id(_cell_id) {};
 	~Well() {};
 };
 

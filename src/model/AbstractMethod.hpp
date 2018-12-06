@@ -52,28 +52,28 @@ protected:
 				cell.stencil[1] = cell.id + 1;
 				const Cell& beta = mesh->cells[cell.stencil[1]];
 				k2 = model->getPerm(beta);
-				cell.trans[0] = 2.0 * k1 * k2 * cell.hz * cell.hx / (k1 * beta.hy + k2 * cell.hy);
+				cell.trans[0] = k1 * k2 * (cell.hy + beta.hy) / (k1 * beta.hy + k2 * cell.hy);
 			}
 			else if (ind_y == mesh->num_y + 1)
 			{
 				cell.stencil[1] = cell.id - 1;
 				const Cell& beta = mesh->cells[cell.stencil[1]];
 				k2 = model->getPerm(beta);
-				cell.trans[0] = 2.0 * k1 * k2 * cell.hz * cell.hx / (k1 * beta.hy + k2 * cell.hy);
+				cell.trans[0] = k1 * k2 * (cell.hy + beta.hy) / (k1 * beta.hy + k2 * cell.hy);
 			}
 			if (ind_x == 0)
 			{
 				cell.stencil[1] = cell.id + mesh->num_y + 2;
 				const Cell& beta = mesh->cells[cell.stencil[1]];
 				k2 = model->getPerm(beta);
-				cell.trans[0] = 2.0 * k1 * k2 * cell.hz * cell.hy / (k1 * beta.hx + k2 * cell.hx);
+				cell.trans[0] = k1 * k2 * (cell.hx + beta.hx) / (k1 * beta.hx + k2 * cell.hx);
 			}
 			else if (ind_x == mesh->num_x + 1)
 			{
 				cell.stencil[1] = cell.id - mesh->num_y - 2;
 				const Cell& beta = mesh->cells[cell.stencil[1]];
 				k2 = model->getPerm(beta);
-				cell.trans[0] = 2.0 * k1 * k2 * cell.hz * cell.hy / (k1 * beta.hx + k2 * cell.hx);
+				cell.trans[0] = k1 * k2 * (cell.hx + beta.hx) / (k1 * beta.hx + k2 * cell.hx);
 			}
 		}
 		else
@@ -81,19 +81,22 @@ protected:
 			cell.stencil[1] = cell.id - 1;
 			const Cell& beta1 = mesh->cells[cell.stencil[1]];
 			k2 = model->getPerm(beta1);
-			cell.trans[0] = 2.0 * k1 * k2 * cell.hz * cell.hx / (k1 * beta1.hy + k2 * cell.hy);
-			cell.stencil[2] = cell.id + 1;
+			cell.trans[0] = k1 * k2 * (cell.hy + beta1.hy) / (k1 * beta1.hy + k2 * cell.hy);
+			
+            cell.stencil[2] = cell.id + 1;
 			const Cell& beta2 = mesh->cells[cell.stencil[2]];
 			k2 = model->getPerm(beta2);
-			cell.trans[1] = 2.0 * k1 * k2 * cell.hz * cell.hx / (k1 * beta2.hy + k2 * cell.hy);
-			cell.stencil[3] = cell.id - mesh->num_y - 2;
+			cell.trans[1] = k1 * k2 * (cell.hy + beta2.hy) / (k1 * beta2.hy + k2 * cell.hy);
+			
+            cell.stencil[3] = cell.id - mesh->num_y - 2;
 			const Cell& beta3 = mesh->cells[cell.stencil[3]];
 			k2 = model->getPerm(beta3);
-			cell.trans[2] = 2.0 * k1 * k2 * cell.hz * cell.hy / (k1 * beta3.hx + k2 * cell.hx);
-			cell.stencil[4] = cell.id + mesh->num_y + 2;
+			cell.trans[2] = k1 * k2 * (cell.hx + beta3.hx) / (k1 * beta3.hx + k2 * cell.hx);
+			
+            cell.stencil[4] = cell.id + mesh->num_y + 2;
 			const Cell& beta4 = mesh->cells[cell.stencil[4]];
 			k2 = model->getPerm(beta4);
-			cell.trans[3] = 2.0 * k1 * k2 * cell.hz * cell.hy / (k1 * beta4.hx + k2 * cell.hx);
+			cell.trans[3] = k1 * k2 * (cell.hx + beta4.hx) / (k1 * beta4.hx + k2 * cell.hx);
 		}
 	};
 

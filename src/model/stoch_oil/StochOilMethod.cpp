@@ -74,6 +74,8 @@ void StochOilMethod::writeData()
 
 	pvd << "\t\t<DataSet part=\"0\" timestep=\"" + std::to_string(cur_t * t_dim / 3600.0) +
 		"0\" file=\"StochOil_" + std::to_string(step_idx) + ".vtu\"/>\n";
+
+    //model->writeCPS(step_idx);
 }
 void StochOilMethod::control()
 {
@@ -275,10 +277,10 @@ void StochOilMethod::solveStep_p2()
 void StochOilMethod::solveStep_Cp()
 {
 	int start_idx = 1;
-	if (step_idx > model->start_time_simple_approx);
+	if (step_idx > model->start_time_simple_approx)
 		start_idx = step_idx;
 
-	for (size_t time_step = start_idx; time_step < step_idx + 1; time_step++)
+	for (int time_step = start_idx; time_step < step_idx + 1; time_step++)
 	{
 		for (const auto& cell : mesh->cells)
 		{
