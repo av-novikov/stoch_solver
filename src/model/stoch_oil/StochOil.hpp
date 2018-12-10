@@ -174,6 +174,9 @@ namespace stoch_oil
                     }
                 }
             }
+
+            for (auto& well : wells)
+                well.perm = exp(getFavg(mesh->cells[well.cell_id])) * props_oil.visc;
         };
         inline double getFavg(const Cell& cell) const
         {

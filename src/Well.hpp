@@ -26,7 +26,7 @@ public:
 	double cur_rate, cur_pwf;
 	bool cur_bound;
 
-	double rw, r_peaceman, WI;
+	double rw, r_peaceman, WI, perm;
 
 	Well(const int _id, const int _cell_id) : id(_id), cell_id(_cell_id) {};
 	~Well() {};
