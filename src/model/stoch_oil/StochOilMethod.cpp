@@ -58,15 +58,25 @@ StochOilMethod::~StochOilMethod()
 };
 void StochOilMethod::writeData()
 {
-	double p = 0.0, q = 0;
+	double p = 0.0, q = 0.0, p_std_dev = 0.0, q_std_dev = 0.0;
 
 	plot_Q << cur_t * t_dim / 3600.0;
 	plot_P << cur_t * t_dim / 3600.0;
 
 	for (const auto& well : model->wells)
 	{
-		plot_Q << "\t" << model->getRate(well) * model->Q_dim * 86400.0;
-		plot_P << "\t" << model->getPwf(well) * model->P_dim / BAR_TO_PA;
+        p_std_dev = sqrt(model->Cp_next[step_idx][well.cell_id * model->cellsNum + well.cell_id]);
+        if (well.cur_bound == true)
+        {
+            q_std_dev = 0.0;
+        }
+        else
+        {
+            q_std_dev = p_std_dev * well.WI / model->props_oil.visc;
+            p_std_dev = 0.0;
+        }
+		plot_Q << "\t" << model->getRate(well) * model->Q_dim * 86400.0 << "\t" << q_std_dev * model->Q_dim * 86400.0;
+		plot_P << "\t" << model->getPwf(well) * model->P_dim / BAR_TO_PA << "\t" << p_std_dev * model->P_dim / BAR_TO_PA;
 	}
 
 	plot_Q << std::endl;
