@@ -85,7 +85,7 @@ void StochOilMethod::writeData()
 	pvd << "\t\t<DataSet part=\"0\" timestep=\"" + std::to_string(cur_t * t_dim / 3600.0) +
 		"0\" file=\"StochOil_" + std::to_string(step_idx) + ".vtu\"/>\n";
 
-    //model->writeCPS(step_idx);
+    model->writeCPS(step_idx);
 }
 void StochOilMethod::control()
 {
@@ -218,8 +218,8 @@ void StochOilMethod::solveStep_Cfp()
 {
 	for (const auto& cell : mesh->cells)
 	{
-		if (cell.type == elem::QUAD)
-		{
+		//if (cell.type == elem::QUAD)
+		//{
 			computeJac_Cfp(cell.id);
 			fill_Cfp(cell.id);
 			if (!avoidMatrixCalc)
@@ -231,7 +231,7 @@ void StochOilMethod::solveStep_Cfp()
 			copySolution_Cfp(cell.id);
 			std::cout << "Cfp #" << cell.id << std::endl;
 			solver1.SetSameMatrix();
-		}
+		//}
 	}
 }
 void StochOilMethod::checkInvertMatrix() const 
@@ -310,18 +310,18 @@ void StochOilMethod::copySolution_p0(const paralution::LocalVector<double>& sol)
 	for (int i = 0; i < size; i++)
 		model->p0_next[i] += sol[i];
 }
-void StochOilMethod::copySolution_Cfp(const int cell_id, const paralution::LocalVector<double>& sol)
+/*void StochOilMethod::copySolution_Cfp(const int cell_id, const paralution::LocalVector<double>& sol)
 {
 	for (int i = 0; i < size; i++)
 		model->Cfp_next[cell_id * size + i] += sol[i];
-}
+}*/
 void StochOilMethod::copySolution_Cfp(const int cell_id)
 {
 	double s;
-	for (size_t i = 0; i < size; i++)
+	for (int i = 0; i < size; i++)
 	{
 		s = 0.0;
-		for (size_t j = offset[i]; j < offset[i + 1]; j++)
+		for (int j = offset[i]; j < offset[i + 1]; j++)
 			s += dmat[j] * rhs1[col[j]];
 		model->Cfp_next[cell_id * size + i] += s;
 	}
@@ -365,8 +365,8 @@ void StochOilMethod::computeJac_p0()
 			model->h[i * var_size] = model->solveBorder_p0(cell);
 	}
 
-	for (const auto& well : model->wells)
-		model->h[well.cell_id * var_size] += model->solveSource_p0(well);
+    for (const auto& well : model->wells)
+        model->h[well.cell_id * var_size] += model->solveSource_p0(well);
 
 	for (int i = 0; i < var_size * size; i++)
 		model->h[i] >>= y0[i];
@@ -390,8 +390,8 @@ void StochOilMethod::computeJac_Cfp(const int cell_id)
 		else if (cell.type == elem::BORDER)
 			model->h[i] = model->solveBorder_Cfp(cell, cur_cell);
 	}
-	for (const auto& well : model->wells)
-		model->h[well.cell_id] += model->solveSource_Cfp(well, cur_cell) / model->P_dim;
+    for (const auto& well : model->wells)
+        model->h[well.cell_id] += model->solveSource_Cfp(well, cur_cell) / model->P_dim;
 
 	for (int i = 0; i < size; i++)
 		model->h[i] >>= y1[i];

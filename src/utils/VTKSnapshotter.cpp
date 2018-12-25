@@ -218,7 +218,7 @@ void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
 
 			p0->InsertNextValue(model->p0_next[cell.id] * model->P_dim / BAR_TO_PA);
 			p2->InsertNextValue(model->p2_next[cell.id] * model->P_dim / BAR_TO_PA);
-            buf1 = exp(model->getFavg(cell)) * model->props_oil.visc;
+            buf1 = exp(model->getFavg(cell) + model->getSigma2f(cell) / 2.0) * model->props_oil.visc;
             perm->InsertNextValue(M2toMilliDarcy(buf1 * R_dim * R_dim));
 
 			var = model->Cp_next[snap_idx][cell.id * model->cellsNum + cell.id] * model->P_dim / BAR_TO_PA * model->P_dim / BAR_TO_PA;
@@ -284,20 +284,21 @@ void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
             for (int i = 0; i < model->wells.size(); i++)
             {
                 const auto& well = model->wells[i];
-                buf3 = model->Cfp_next[cell.id * model->cellsNum + well.cell_id];
+                buf3 = model->Cfp_next[well.cell_id * model->cellsNum + cell.id] * model->P_dim / BAR_TO_PA;
                 buf4 = model->getSigma2f(cell);
                 buf5 = model->Cp_next[snap_idx][well.cell_id * model->cellsNum + well.cell_id];
+
                 if (fabs(buf3) == 0.0 && (sqrt(buf4) == 0.0 || sqrt(buf5) == 0.0))
                     buf1 = 0.0;
                 else
-                    buf1 = buf3 / sqrt(buf4 * buf5);
-                buf3 = model->Cp_next[snap_idx][well.cell_id * model->cellsNum + cell.id];
+                    buf1 = buf3;// / sqrt(buf4 * buf5);
+                buf3 = model->Cp_next[snap_idx][well.cell_id * model->cellsNum + cell.id] * model->P_dim / BAR_TO_PA * model->P_dim / BAR_TO_PA;
                 buf4 = model->Cp_next[snap_idx][well.cell_id * model->cellsNum + well.cell_id];
                 buf5 = model->Cp_next[snap_idx][cell.id * model->cellsNum + cell.id];
                 if (fabs(buf3) == 0.0 && (sqrt(buf4) == 0.0 || sqrt(buf5) == 0.0))
                     buf2 = 0.0;
                 else
-                    buf2 = buf3 / sqrt(buf4 * buf5);
+                    buf2 = buf3;// / sqrt(buf4 * buf5);
                 if (well.cur_bound)
                 {
                     pwf_perm_corr[i]->InsertNextValue(buf1);
@@ -309,7 +310,7 @@ void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
                 {
                     pwf_perm_corr[i]->InsertNextValue(0.0);
                     pwf_pres_corr[i]->InsertNextValue(0.0);
-                    q_perm_corr[i]->InsertNextValue(buf1);
+                    q_perm_corr[i]->InsertNextValue(-buf1);
                     q_pres_corr[i]->InsertNextValue(buf2);
                 }
                 Cf_well[i]->InsertNextValue(model->getCf(mesh->cells[well.cell_id], cell) / 
