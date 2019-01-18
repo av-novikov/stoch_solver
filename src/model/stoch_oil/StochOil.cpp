@@ -228,15 +228,22 @@ double StochOil::getRate(const Well& well) const
 	else
 	{
 		double p_cell = p0_next[well.cell_id];
-		return well.WI * (p_cell - well.cur_pwf) / props_oil.visc;
+        if(well.isCond)
+            return well.WI * (p_cell - well.cur_pwf) / props_oil.visc;
+        else
+            return well.WI / well.perm * getKg(mesh->cells[well.cell_id]) * ((p_cell - well.cur_pwf) + Cfp_next[well.cell_id * cellsNum + well.cell_id]);
 	}
 }
 double StochOil::getPwf(const Well& well) const
 {
 	if (well.cur_bound)
 	{
+        const Cell& cell = mesh->cells[well.cell_id];
 		double p_cell = p0_next[well.cell_id];
-		return p_cell + well.cur_rate * props_oil.visc / well.WI;
+        if(well.isCond)
+            return p_cell + well.cur_rate * props_oil.visc / well.WI;
+        else
+            return p_cell + well.cur_rate * well.perm / well.WI / getKg(cell) * (1.0 + getSigma2f(cell) / 2.0);
 	}
 	else
 		return well.cur_pwf;
@@ -291,8 +298,8 @@ adouble StochOil::solveSource_p0(const Well& well) const
 	const Cell& cell = mesh->cells[well.cell_id];
 	if(well.cur_bound == true)
 		return -well.cur_rate * ht / cell.V / getKg(cell);
-	else
-		return -well.WI / props_oil.visc * (well.cur_pwf - x[cell.id]) * ht / cell.V / getKg(cell);
+    else
+        return -well.WI / well.perm * (well.cur_pwf - x[cell.id]) * ht / cell.V;
 }
 
 adouble StochOil::solveInner_Cfp(const Cell& cell, const Cell& cur_cell) const
@@ -353,7 +360,7 @@ adouble StochOil::solveSource_Cfp(const Well& well, const Cell& cur_cell) const
 	if (well.cur_bound == true)
 		return well.cur_rate * ht / cell.V / getKg(cell) * getCf(cur_cell, cell);
     else
-        return well.WI / props_oil.visc * (well.cur_pwf - x[cell.id]) * ht / cell.V / getKg(cell) * getCf(cur_cell, cell);
+        return well.WI / well.perm * x[cell.id] * ht / cell.V;
 }
 
 adouble StochOil::solveInner_p2(const Cell& cell) const
@@ -414,10 +421,10 @@ adouble StochOil::solveBorder_p2(const Cell& cell) const
 adouble StochOil::solveSource_p2(const Well& well) const
 {
 	const Cell& cell = mesh->cells[well.cell_id];
-	if (well.cur_bound == true)
-		return -well.cur_rate * ht / cell.V / getKg(cell) * getSigma2f(cell) / 2.0;
-	else
-		return -well.WI / props_oil.visc * (well.cur_pwf - x[cell.id]) * ht / cell.V / getKg(cell) * getSigma2f(cell) / 2.0;
+    if (well.cur_bound == true)
+        return -well.cur_rate * ht / cell.V / getKg(cell) * getSigma2f(cell) / 2.0;
+    else
+        return 0.0;// -well.WI / props_oil.visc * (well.cur_pwf - x[cell.id]) * ht / cell.V / getKg(cell) * getSigma2f(cell) / 2.0;
 }
 
 adouble StochOil::solveInner_Cp(const Cell& cell, const Cell& cur_cell, const size_t step_idx, const size_t cur_step_idx) const
@@ -478,8 +485,8 @@ adouble StochOil::solveBorder_Cp(const Cell& cell, const Cell& cur_cell, const s
 adouble StochOil::solveSource_Cp(const Well& well, const Cell& cur_cell, const size_t step_idx) const
 {
 	const Cell& cell = mesh->cells[well.cell_id];
-	if (well.cur_bound == true)
-		return well.cur_rate * ht / cell.V / getKg(cell) * Cfp[step_idx][cell.id * cellsNum + cur_cell.id];
-	else
-		return well.WI / props_oil.visc * (well.cur_pwf - x[cell.id]) * ht / cell.V / getKg(cell) * Cfp[step_idx][cell.id * cellsNum + cur_cell.id];
+    if (well.cur_bound == true)
+        return well.cur_rate * ht / cell.V / getKg(cell) * Cfp[step_idx][cell.id * cellsNum + cur_cell.id];
+    else
+        return 0.0;// well.WI / props_oil.visc * (well.cur_pwf - x[cell.id]) * ht / cell.V / getKg(cell) * Cfp[step_idx][cell.id * cellsNum + cur_cell.id];
 }

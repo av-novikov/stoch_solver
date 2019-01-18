@@ -24,11 +24,11 @@ public:
 
 	int cur_period;
 	double cur_rate, cur_pwf;
-	bool cur_bound;
+	bool cur_bound, isCond;
 
 	double rw, r_peaceman, WI, perm;
 
-	Well(const int _id, const int _cell_id) : id(_id), cell_id(_cell_id) {};
+    Well(const int _id, const int _cell_id) : id(_id), cell_id(_cell_id) { isCond = false; };
 	~Well() {};
 };
 

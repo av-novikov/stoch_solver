@@ -175,6 +175,13 @@ namespace stoch_oil
                 }
             }
 
+            for (const auto& cond : conditions)
+            {
+                auto it = find_if(wells.begin(), wells.end(), [&](const Well& well) {return well.cell_id == cond.id; });
+                if (it != wells.end())
+                    it->isCond = true;
+            }
+
             for (auto& well : wells)
                 well.perm = exp(getFavg(mesh->cells[well.cell_id])) * props_oil.visc;
         };

@@ -313,8 +313,7 @@ void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
                     q_perm_corr[i]->InsertNextValue(-buf1);
                     q_pres_corr[i]->InsertNextValue(buf2);
                 }
-                Cf_well[i]->InsertNextValue(model->getCf(mesh->cells[well.cell_id], cell) / 
-                                    sqrt(model->getSigma2f(mesh->cells[well.cell_id]) * model->getSigma2f(cell)));
+                Cf_well[i]->InsertNextValue(model->getCf(mesh->cells[well.cell_id], cell));
             }
 		}
 	}
