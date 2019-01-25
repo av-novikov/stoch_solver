@@ -236,28 +236,41 @@ void StochOilMethod::solveStep_Cfp()
 }
 void StochOilMethod::checkInvertMatrix() const 
 {
-	size_t ind, end_idx = 0;
+    std::ofstream file("ffile.txt", std::ofstream::out);
+	int ind0 = 0, ind1 = 0, end_idx = 0;
 	double val;
-	for (size_t i = 0; i < size; i++)
+	for (int i = 0; i < size; i++)
 	{
-		for (size_t j = 0; j < size; j++)
+		for (int j = 0; j < size; j++)
 		{
 			val = 0.0;
-			ind = end_idx;
+			//ind = end_idx;
 			for (size_t k = 0; k < size; k++)
 			{
-				if (ind_i1[ind] == i && ind_j1[ind] == k)
-					val += dmat[k * size + j] * a1[ind++];
+                if (ind_i1[ind0] == i && ind_j1[ind0] == k)
+                {
+                    for (int l = offset[k]; l < offset[k + 1]; l++)
+                        if (col[l] == j)
+                        {
+                            val += a1[ind0] * dmat[ind1];
+                            break;
+                        }
+                    ind0++;
+                }
+                for (int l = offset[k]; l < offset[k + 1]; l++)
+                    if (col[l] == j)
+                        ind1++;
 			}
-
-			if (i == j)
+            file << i << "\t" << j << "\t" << val << "\n";
+			/*if (i == j)
 				assert(fabs(val - 1.0) < 1.E-6);
 			else
-				assert(fabs(val) < 1.E-6);
+				assert(fabs(val) < 1.E-6);*/
 
 		}
-		end_idx = ind;
+		//end_idx = ind;
 	}
+    file.close();
 }
 void StochOilMethod::solveStep_p2()
 {
@@ -331,11 +344,11 @@ void StochOilMethod::copySolution_p2(const paralution::LocalVector<double>& sol)
 	for (int i = 0; i < size; i++)
 		model->p2_next[i] += sol[i];
 }
-void StochOilMethod::copySolution_Cp(const int cell_id, const paralution::LocalVector<double>& sol, const size_t time_step)
+/*void StochOilMethod::copySolution_Cp(const int cell_id, const paralution::LocalVector<double>& sol, const size_t time_step)
 {
 	for (size_t i = 0; i < size; i++)
 		model->Cp_next[time_step][cell_id * size + i] += sol[i];
-}
+}*/
 void StochOilMethod::copySolution_Cp(const int cell_id, const size_t time_step)
 {
 	double s;

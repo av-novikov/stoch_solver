@@ -23,14 +23,13 @@ int main()
 {
 	stoch_oil::Properties props;
 	
-	props.possible_steps_num = 3;
+	props.possible_steps_num = 4;
 	props.start_time_simple_approx = 2;
 	props.t_dim = 3600.0;
 	props.ht = props.ht_min = 10000000.0;
 	props.ht_max = 100000000.0;
-
 	props.hx = props.hy = props.R_dim = 2100.0;		props.hz = 10.0;
-	props.num_x = props.num_y = 81;
+	props.num_x = props.num_y = 41;
 	size_t num = (props.num_x + 2) * (props.num_y + 2);
 
 	props.props_sk.p_init = props.props_sk.p_out = 275.39  * BAR_TO_PA;

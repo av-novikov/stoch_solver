@@ -77,7 +77,7 @@ namespace stoch_oil
 		};
 		inline double getSigma2f_prior(const Cell& cell) const
 		{
-			return getCf(cell, cell);
+			return getCf_prior(cell, cell);
 		};
         // Apostreriori (conditioned) statistical moments
         void calculateConditioning()
@@ -191,6 +191,8 @@ namespace stoch_oil
         };
         inline double getCf(const Cell& cell, const Cell& beta) const
         {
+            assert(fabs(Cf[cell.id][beta.id] - Cf[beta.id][cell.id]) < 1.E-6);
+            assert(fabs(Cf[cell.id][beta.id] - getCf_prior(cell, beta)) < 1.E-6);
             return Cf[cell.id][beta.id];
         };
         inline double getSigma2f(const Cell& cell) const

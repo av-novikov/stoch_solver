@@ -3,9 +3,12 @@
 #include <valarray>
 
 #include <assert.h>
+#include <boost/math/special_functions/expint.hpp>
+#include <boost/math/constants/constants.hpp>
 
 using namespace stoch_oil;
 using std::valarray;
+using boost::math::expint;
 
 StochOil::StochOil()
 {
@@ -252,7 +255,6 @@ double StochOil::getPwf(const Well& well) const
 adouble StochOil::solveInner_p0(const Cell& cell) const
 {
 	assert(cell.type == elem::QUAD);
-
 	const auto& next = x[cell.id];
 	const auto prev = p0_prev[cell.id];
 	
@@ -305,8 +307,18 @@ adouble StochOil::solveSource_p0(const Well& well) const
 adouble StochOil::solveInner_Cfp(const Cell& cell, const Cell& cur_cell) const
 {
 	assert(cell.type == elem::QUAD);
-	const auto& next = x[cell.id];
-	const auto prev = Cfp_prev[cur_cell.id * cellsNum + cell.id];
+    adouble next;
+    if (cell.id == wells[0].cell_id)
+    {
+        const Well& well = wells[0];
+        const double R = 1154.0 / R_dim;
+        const double pD = well.cur_rate / getKg(cell) / 2.0 / M_PI / mesh->hz;
+        next = x[cell.id] + getSigma2f(cell) * pD * (expint(-R / props_sk.l_f) - expint(-well.r_peaceman / props_sk.l_f));
+    }
+    else
+        next = x[cell.id];
+
+    const auto prev = Cfp_prev[cur_cell.id * cellsNum + cell.id];
 
 	adouble H;
 	H = getS(cell) * (next - prev) / getKg(cell);
@@ -338,15 +350,17 @@ adouble StochOil::solveInner_Cfp(const Cell& cell, const Cell& cur_cell) const
 	H -= ht * (log(cell.trans[1] / props_oil.visc) - log(cell.trans[0] / props_oil.visc)) / cell.hy *
 		(nebr_y_plus - nebr_y_minus) / (beta_y_plus.cent.y - beta_y_minus.cent.y);
 
-
 	double H1 = -ht * ((p0_next[x_plus] - p0_next[x_minus]) / (beta_x_plus.cent.x - beta_x_minus.cent.x) *
 	(getCf(cur_cell, beta_x_plus) - getCf(cur_cell, beta_x_minus)) / (beta_x_plus.cent.x - beta_x_minus.cent.x) +
 					(p0_next[y_plus] - p0_next[y_minus]) / (beta_y_plus.cent.y - beta_y_minus.cent.y) *
 	(getCf(cur_cell, beta_y_plus) - getCf(cur_cell, beta_y_minus)) / (beta_y_plus.cent.y - beta_y_minus.cent.y));
 	
-	double H2 = -getS(cell) / getKg(cell) * (p0_next[cell.id] - p0_prev[cell.id]) * getCf(cur_cell, cell);
+    double H2 = -getS(cell) / getKg(cell) * (p0_next[cell.id] - p0_prev[cell.id]) * getCf(cur_cell, cell);
 
-	return H + H1 + H2;
+    if (cell.id == wells[0].cell_id)
+        return H + H2;
+    else       
+        return H + H1 + H2;
 }
 adouble StochOil::solveBorder_Cfp(const Cell& cell, const Cell& cur_cell) const
 {
@@ -357,8 +371,8 @@ adouble StochOil::solveBorder_Cfp(const Cell& cell, const Cell& cur_cell) const
 adouble StochOil::solveSource_Cfp(const Well& well, const Cell& cur_cell) const
 {
 	const Cell& cell = mesh->cells[well.cell_id];
-	if (well.cur_bound == true)
-		return well.cur_rate * ht / cell.V / getKg(cell) * getCf(cur_cell, cell);
+    if (well.cur_bound == true)
+        return well.cur_rate * ht / cell.V / getKg(cell) * getCf(cur_cell, cell);
     else
         return well.WI / well.perm * x[cell.id] * ht / cell.V;
 }
@@ -430,7 +444,21 @@ adouble StochOil::solveSource_p2(const Well& well) const
 adouble StochOil::solveInner_Cp(const Cell& cell, const Cell& cur_cell, const size_t step_idx, const size_t cur_step_idx) const
 {
 	assert(cell.type == elem::QUAD && cur_cell.type == elem::QUAD);
-	const auto& next = x[cell.id];
+	adouble next;
+    if (cell.id == wells[0].cell_id)
+    {
+        const Well& well = wells[0];
+        const double R = 1154.0 / R_dim;
+        const double a0 = 0.4618344;
+        const double pD = well.cur_rate / getKg(cell) / 2.0 / M_PI / mesh->hz;
+        const double add = getSigma2f(cell) * pD * pD * ((log(well.r_peaceman * R_dim) * log(well.r_peaceman * R_dim) - log(R * R_dim) * log(R * R_dim)) / 2.0 +
+            log(well.r_peaceman / R) * (boost::math::constants::euler<double>() +
+                0.5 * log(well.r_peaceman * R / props_sk.l_f / props_sk.l_f)) - (well.r_peaceman - R * a0) / props_sk.l_f);
+        next = x[cell.id] - add;
+    }
+    else
+        next = x[cell.id];
+
 	double prev;
 	if(step_idx > start_time_simple_approx)
 		prev = Cp_prev[step_idx - 1][cur_cell.id * cellsNum + cell.id];
@@ -474,7 +502,10 @@ adouble StochOil::solveInner_Cp(const Cell& cell, const Cell& cur_cell, const si
 
 	double H2 = -getS(cell) / getKg(cell) * (p0_next[cell.id] - p0_prev[cell.id]) * Cfp[step_idx][cell.id * cellsNum + cur_cell.id];
 
-	return H + H1 + H2;
+    if (cell.id == wells[0].cell_id)
+        return H + H2;
+    else
+        return H + H1 + H2;
 }
 adouble StochOil::solveBorder_Cp(const Cell& cell, const Cell& cur_cell, const size_t step_idx) const
 {
@@ -486,7 +517,7 @@ adouble StochOil::solveSource_Cp(const Well& well, const Cell& cur_cell, const s
 {
 	const Cell& cell = mesh->cells[well.cell_id];
     if (well.cur_bound == true)
-        return well.cur_rate * ht / cell.V / getKg(cell) * Cfp[step_idx][cell.id * cellsNum + cur_cell.id];
+        return 0.0;// well.cur_rate * ht / cell.V / getKg(cell) * Cfp[step_idx][cell.id * cellsNum + cur_cell.id];
     else
         return 0.0;// well.WI / props_oil.visc * (well.cur_pwf - x[cell.id]) * ht / cell.V / getKg(cell) * Cfp[step_idx][cell.id * cellsNum + cur_cell.id];
 }
