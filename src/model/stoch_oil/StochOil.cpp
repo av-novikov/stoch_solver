@@ -28,7 +28,7 @@ void StochOil::loadPermAvg(const std::string fileName)
     file >> buf;
     while (buf != "/")
     {
-        props_sk.perm_grd.push_back(MilliDarcyToM2(5.0 + std::stod(buf, &sz)));
+        props_sk.perm_grd.push_back(MilliDarcyToM2(std::stod(buf, &sz)));
         file >> buf;
     }
     file.close();
@@ -103,7 +103,7 @@ void StochOil::setProps(const Properties& props)
 
 	props_sk = props.props_sk;
 	props_sk.perm = MilliDarcyToM2(props_sk.perm);
-    //loadPermAvg("permx.perm9.inc");
+    loadPermAvg("props/perm41");
 
 	props_oil = props.props_oil;
 	props_oil.visc = cPToPaSec(props_oil.visc);
@@ -257,8 +257,7 @@ adouble StochOil::solveInner_p0(const Cell& cell) const
 	assert(cell.type == elem::QUAD);
 	const auto& next = x[cell.id];
 	const auto prev = p0_prev[cell.id];
-	
-	adouble H;
+    adouble H, var_plus, var_minus;
 	H = getS(cell) * (next - prev) / getKg(cell);
 
 	const auto& beta_y_minus = mesh->cells[cell.stencil[1]];
@@ -274,14 +273,20 @@ adouble StochOil::solveInner_p0(const Cell& cell) const
 	H -= ht * ((nebr_x_plus - next) / (beta_x_plus.cent.x - cell.cent.x) -
 			(next - nebr_x_minus) / (cell.cent.x - beta_x_minus.cent.x)) / cell.hx;
 
-	H -= ht * (log(cell.trans[3] / props_oil.visc) - log(cell.trans[2] / props_oil.visc)) / cell.hx *
+    var_plus = linearInterp1d(getSigma2f(beta_x_plus), beta_x_plus.hx / 2.0, getSigma2f(cell), cell.hx / 2.0);
+    var_minus = linearInterp1d(getSigma2f(beta_x_minus), beta_x_minus.hx / 2.0, getSigma2f(cell), cell.hx / 2.0);
+	H -= ht * (log(cell.trans[3] / props_oil.visc) - var_plus / 2.0 - 
+                log(cell.trans[2] / props_oil.visc) + var_minus / 2.0) / cell.hx *
 			(nebr_x_plus - nebr_x_minus) / (beta_x_plus.cent.x - beta_x_minus.cent.x);
 
 	H -= ht * ((nebr_y_plus - next) / (beta_y_plus.cent.y - cell.cent.y) -
 		(next - nebr_y_minus) / (cell.cent.y - beta_y_minus.cent.y)) / cell.hy;
 
-	H -= ht * (log(cell.trans[1] / props_oil.visc) - log(cell.trans[0] / props_oil.visc)) / cell.hy *
-		(nebr_y_plus - nebr_y_minus) / (beta_y_plus.cent.y - beta_y_minus.cent.y);
+    var_plus = linearInterp1d(getSigma2f(beta_y_plus), beta_y_plus.hy / 2.0, getSigma2f(cell), cell.hy / 2.0);
+    var_minus = linearInterp1d(getSigma2f(beta_y_minus), beta_y_minus.hy / 2.0, getSigma2f(cell), cell.hy / 2.0);
+	H -= ht * (log(cell.trans[1] / props_oil.visc) - var_plus / 2.0 - 
+                log(cell.trans[0] / props_oil.visc) + var_minus / 2.0) / cell.hy *
+		    (nebr_y_plus - nebr_y_minus) / (beta_y_plus.cent.y - beta_y_minus.cent.y);
 
 	return H;
 }
@@ -307,20 +312,9 @@ adouble StochOil::solveSource_p0(const Well& well) const
 adouble StochOil::solveInner_Cfp(const Cell& cell, const Cell& cur_cell) const
 {
 	assert(cell.type == elem::QUAD);
-    adouble next;
-    if (cell.id == wells[0].cell_id)
-    {
-        const Well& well = wells[0];
-        const double R = 1154.0 / R_dim;
-        const double pD = well.cur_rate / getKg(cell) / 2.0 / M_PI / mesh->hz;
-        next = x[cell.id] + getSigma2f(cell) * pD * (expint(-R / props_sk.l_f) - expint(-well.r_peaceman / props_sk.l_f));
-    }
-    else
-        next = x[cell.id];
-
+    adouble next = x[cell.id];
     const auto prev = Cfp_prev[cur_cell.id * cellsNum + cell.id];
-
-	adouble H;
+	adouble H, var_plus, var_minus;
 	H = getS(cell) * (next - prev) / getKg(cell);
 
 	const int& y_minus = cell.stencil[1];
@@ -341,13 +335,19 @@ adouble StochOil::solveInner_Cfp(const Cell& cell, const Cell& cur_cell) const
 	H -= ht * ((nebr_x_plus - next) / (beta_x_plus.cent.x - cell.cent.x) -
 		(next - nebr_x_minus) / (cell.cent.x - beta_x_minus.cent.x)) / cell.hx;
 
-	H -= ht * (log(cell.trans[3] / props_oil.visc) - log(cell.trans[2] / props_oil.visc)) / cell.hx *
-		(nebr_x_plus - nebr_x_minus) / (beta_x_plus.cent.x - beta_x_minus.cent.x);
+    var_plus = linearInterp1d(getSigma2f(beta_x_plus), beta_x_plus.hx / 2.0, getSigma2f(cell), cell.hx / 2.0);
+    var_minus = linearInterp1d(getSigma2f(beta_x_minus), beta_x_minus.hx / 2.0, getSigma2f(cell), cell.hx / 2.0);
+	H -= ht * (log(cell.trans[3] / props_oil.visc) - var_plus / 2.0 - 
+                log(cell.trans[2] / props_oil.visc) + var_minus / 2.0) / cell.hx *
+		    (nebr_x_plus - nebr_x_minus) / (beta_x_plus.cent.x - beta_x_minus.cent.x);
 
 	H -= ht * ((nebr_y_plus - next) / (beta_y_plus.cent.y - cell.cent.y) -
 		(next - nebr_y_minus) / (cell.cent.y - beta_y_minus.cent.y)) / cell.hy;
 
-	H -= ht * (log(cell.trans[1] / props_oil.visc) - log(cell.trans[0] / props_oil.visc)) / cell.hy *
+    var_plus = linearInterp1d(getSigma2f(beta_y_plus), beta_y_plus.hy / 2.0, getSigma2f(cell), cell.hy / 2.0);
+    var_minus = linearInterp1d(getSigma2f(beta_y_minus), beta_y_minus.hy / 2.0, getSigma2f(cell), cell.hy / 2.0);
+	H -= ht * (log(cell.trans[1] / props_oil.visc) - var_plus / 2.0 - 
+                log(cell.trans[0] / props_oil.visc) + var_minus / 2.0) / cell.hy *
 		(nebr_y_plus - nebr_y_minus) / (beta_y_plus.cent.y - beta_y_minus.cent.y);
 
 	double H1 = -ht * ((p0_next[x_plus] - p0_next[x_minus]) / (beta_x_plus.cent.x - beta_x_minus.cent.x) *
@@ -357,10 +357,7 @@ adouble StochOil::solveInner_Cfp(const Cell& cell, const Cell& cur_cell) const
 	
     double H2 = -getS(cell) / getKg(cell) * (p0_next[cell.id] - p0_prev[cell.id]) * getCf(cur_cell, cell);
 
-    if (cell.id == wells[0].cell_id)
-        return H + H2;
-    else       
-        return H + H1 + H2;
+    return H + H1 + H2;
 }
 adouble StochOil::solveBorder_Cfp(const Cell& cell, const Cell& cur_cell) const
 {
@@ -384,7 +381,7 @@ adouble StochOil::solveInner_p2(const Cell& cell) const
 	const auto& next = x[cell.id];
 	const auto prev = p2_prev[cell.id];
 
-	adouble H;
+	adouble H, var_plus, var_minus;
 	H = getS(cell) * (next - prev) / getKg(cell);
 
 	const int& y_minus = cell.stencil[1];
@@ -405,13 +402,19 @@ adouble StochOil::solveInner_p2(const Cell& cell) const
 	H -= ht * ((nebr_x_plus - next) / (beta_x_plus.cent.x - cell.cent.x) -
 		(next - nebr_x_minus) / (cell.cent.x - beta_x_minus.cent.x)) / cell.hx;
 
-	H -= ht * (log(cell.trans[3] / props_oil.visc) - log(cell.trans[2] / props_oil.visc)) / cell.hx *
+    var_plus = linearInterp1d(getSigma2f(beta_x_plus), beta_x_plus.hx / 2.0, getSigma2f(cell), cell.hx / 2.0);
+    var_minus = linearInterp1d(getSigma2f(beta_x_minus), beta_x_minus.hx / 2.0, getSigma2f(cell), cell.hx / 2.0);
+	H -= ht * (log(cell.trans[3] / props_oil.visc) - var_plus / 2.0 - 
+                log(cell.trans[2] / props_oil.visc) + var_minus / 2.0) / cell.hx *
 		(nebr_x_plus - nebr_x_minus) / (beta_x_plus.cent.x - beta_x_minus.cent.x);
 
 	H -= ht * ((nebr_y_plus - next) / (beta_y_plus.cent.y - cell.cent.y) -
 		(next - nebr_y_minus) / (cell.cent.y - beta_y_minus.cent.y)) / cell.hy;
 
-	H -= ht * (log(cell.trans[1] / props_oil.visc) - log(cell.trans[0] / props_oil.visc)) / cell.hy *
+    var_plus = linearInterp1d(getSigma2f(beta_y_plus), beta_y_plus.hy / 2.0, getSigma2f(cell), cell.hy / 2.0);
+    var_minus = linearInterp1d(getSigma2f(beta_y_minus), beta_y_minus.hy / 2.0, getSigma2f(cell), cell.hy / 2.0);
+	H -= ht * (log(cell.trans[1] / props_oil.visc) - var_plus / 2.0 - 
+                log(cell.trans[0] / props_oil.visc) + var_minus / 2.0) / cell.hy *
 		(nebr_y_plus - nebr_y_minus) / (beta_y_plus.cent.y - beta_y_minus.cent.y);
 
 	double H1 = -ht * ((Cfp_next[x_plus * cellsNum + x_plus] - Cfp_next[x_plus * cellsNum + x_minus]) -
@@ -444,28 +447,14 @@ adouble StochOil::solveSource_p2(const Well& well) const
 adouble StochOil::solveInner_Cp(const Cell& cell, const Cell& cur_cell, const size_t step_idx, const size_t cur_step_idx) const
 {
 	assert(cell.type == elem::QUAD && cur_cell.type == elem::QUAD);
-	adouble next;
-    if (cell.id == wells[0].cell_id)
-    {
-        const Well& well = wells[0];
-        const double R = 1154.0 / R_dim;
-        const double a0 = 0.4618344;
-        const double pD = well.cur_rate / getKg(cell) / 2.0 / M_PI / mesh->hz;
-        const double add = getSigma2f(cell) * pD * pD * ((log(well.r_peaceman * R_dim) * log(well.r_peaceman * R_dim) - log(R * R_dim) * log(R * R_dim)) / 2.0 +
-            log(well.r_peaceman / R) * (boost::math::constants::euler<double>() +
-                0.5 * log(well.r_peaceman * R / props_sk.l_f / props_sk.l_f)) - (well.r_peaceman - R * a0) / props_sk.l_f);
-        next = x[cell.id] - add;
-    }
-    else
-        next = x[cell.id];
-
+	adouble next = x[cell.id];
 	double prev;
 	if(step_idx > start_time_simple_approx)
 		prev = Cp_prev[step_idx - 1][cur_cell.id * cellsNum + cell.id];
 	else
 		prev = Cp_next[step_idx - 1][cur_cell.id * cellsNum + cell.id];
 
-	adouble H;
+	adouble H, var_plus, var_minus;
 	H = getS(cell) * (next - prev) / getKg(cell);
 
 	const int& y_minus = cell.stencil[1];
@@ -486,13 +475,19 @@ adouble StochOil::solveInner_Cp(const Cell& cell, const Cell& cur_cell, const si
 	H -= ht * ((nebr_x_plus - next) / (beta_x_plus.cent.x - cell.cent.x) -
 		(next - nebr_x_minus) / (cell.cent.x - beta_x_minus.cent.x)) / cell.hx;
 
-	H -= ht * (log(cell.trans[3] / props_oil.visc) - log(cell.trans[2] / props_oil.visc)) / cell.hx *
+    var_plus = linearInterp1d(getSigma2f(beta_x_plus), beta_x_plus.hx / 2.0, getSigma2f(cell), cell.hx / 2.0);
+    var_minus = linearInterp1d(getSigma2f(beta_x_minus), beta_x_minus.hx / 2.0, getSigma2f(cell), cell.hx / 2.0);
+	H -= ht * (log(cell.trans[3] / props_oil.visc) - var_plus / 2.0 - 
+                log(cell.trans[2] / props_oil.visc) + var_minus / 2.0) / cell.hx *
 		(nebr_x_plus - nebr_x_minus) / (beta_x_plus.cent.x - beta_x_minus.cent.x);
 
 	H -= ht * ((nebr_y_plus - next) / (beta_y_plus.cent.y - cell.cent.y) -
 		(next - nebr_y_minus) / (cell.cent.y - beta_y_minus.cent.y)) / cell.hy;
 
-	H -= ht * (log(cell.trans[1] / props_oil.visc) - log(cell.trans[0] / props_oil.visc)) / cell.hy *
+    var_plus = linearInterp1d(getSigma2f(beta_y_plus), beta_y_plus.hy / 2.0, getSigma2f(cell), cell.hy / 2.0);
+    var_minus = linearInterp1d(getSigma2f(beta_y_minus), beta_y_minus.hy / 2.0, getSigma2f(cell), cell.hy / 2.0);
+	H -= ht * (log(cell.trans[1] / props_oil.visc) - var_plus / 2.0 - 
+                log(cell.trans[0] / props_oil.visc) + var_minus / 2.0) / cell.hy *
 		(nebr_y_plus - nebr_y_minus) / (beta_y_plus.cent.y - beta_y_minus.cent.y);
 
 	double H1 = -ht * ((p0_next[x_plus] - p0_next[x_minus]) / (beta_x_plus.cent.x - beta_x_minus.cent.x) *
@@ -502,10 +497,7 @@ adouble StochOil::solveInner_Cp(const Cell& cell, const Cell& cur_cell, const si
 
 	double H2 = -getS(cell) / getKg(cell) * (p0_next[cell.id] - p0_prev[cell.id]) * Cfp[step_idx][cell.id * cellsNum + cur_cell.id];
 
-    if (cell.id == wells[0].cell_id)
-        return H + H2;
-    else
-        return H + H1 + H2;
+    return H + H1 + H2;
 }
 adouble StochOil::solveBorder_Cp(const Cell& cell, const Cell& cur_cell, const size_t step_idx) const
 {
@@ -517,7 +509,7 @@ adouble StochOil::solveSource_Cp(const Well& well, const Cell& cur_cell, const s
 {
 	const Cell& cell = mesh->cells[well.cell_id];
     if (well.cur_bound == true)
-        return 0.0;// well.cur_rate * ht / cell.V / getKg(cell) * Cfp[step_idx][cell.id * cellsNum + cur_cell.id];
+        return well.cur_rate * ht / cell.V / getKg(cell) * Cfp[step_idx][cell.id * cellsNum + cur_cell.id];
     else
         return 0.0;// well.WI / props_oil.visc * (well.cur_pwf - x[cell.id]) * ht / cell.V / getKg(cell) * Cfp[step_idx][cell.id * cellsNum + cur_cell.id];
 }

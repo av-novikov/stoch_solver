@@ -47,9 +47,29 @@ namespace stoch_oil
 		};
 		inline double getPerm(const Cell& cell) const
 		{
-			return props_sk.perm;
-            //const int id = (cell.type == elem::QUAD) ? cell.id : cell.stencil[1];
-            //return props_sk.perm_grd[(id / (mesh->num_y + 2) - 1) * mesh->num_y + id % (mesh->num_y + 2) - 1];
+            int ind_x = int(cell.id / (mesh->num_y + 2));
+            int ind_y = cell.id % (mesh->num_y + 2);
+            int id = cell.id;
+            if (cell.type != elem::QUAD)
+            {
+                //if ((ind_x == 0 || ind_x == mesh->num_x + 1) && (ind_y == 0 || ind_y == mesh->num_y + 1))
+                //    return 1.0;
+                //else
+                //{
+                    if (ind_y == 0)
+                        id += 1;
+                    else if (ind_y == mesh->num_y + 1)
+                        id -= 1;
+                    if (ind_x == 0)
+                        id += mesh->num_y + 2;
+                    else if (ind_x == mesh->num_x + 1)
+                        id -= mesh->num_y + 2;
+                //}
+            }
+            ind_x = int(id / (mesh->num_y + 2));
+            ind_y = mesh->num_y + 1 - id % (mesh->num_y + 2);
+            return props_sk.perm_grd[(ind_x - 1) * mesh->num_y + (ind_y - 1)];
+            //return props_sk.perm;
 		};
         inline double getS(const Cell& cell) const
         {
@@ -59,7 +79,7 @@ namespace stoch_oil
         // Apriori (unconditioned) statistical moments
         inline double getFavg_prior(const Cell& cell) const
         {
-            return log(getPerm(cell) / props_oil.visc);
+            return log(getPerm(cell) / props_oil.visc) - getSigma2f_prior(cell) / 2.0;
         };
 		inline double getCf_prior(const Cell& cell, const Cell& beta) const
 		{
@@ -73,7 +93,7 @@ namespace stoch_oil
 				return props_sk.sigma_f * props_sk.sigma_f * exp(-dist * dist);
 			};
 
-			return corrFoo1(cell.cent, beta.cent);
+			return corrFoo2(cell.cent, beta.cent);
 		};
 		inline double getSigma2f_prior(const Cell& cell) const
 		{
@@ -114,8 +134,8 @@ namespace stoch_oil
 
                 double s;
                 // Check inversion
-                /*counter = 0;
-                for (int i = 0; i < conditions.size(); i++)
+                counter = 0;
+                /*for (int i = 0; i < conditions.size(); i++)
                 {
                     for (int j = 0; j < conditions.size(); j++)
                     {
@@ -160,7 +180,8 @@ namespace stoch_oil
                     for (int k2 = 0; k2 < conditions.size(); k2++)
                     {
                         const auto& cond = conditions[k2];
-                        Favg[i] += mult_mat[i][k2] * (log(cond.perm / props_oil.visc) - getFavg_prior(mesh->cells[cond.id]));
+                        const auto c_cell = mesh->cells[cond.id];
+                        Favg[i] += mult_mat[i][k2] * (log(cond.perm / props_oil.visc) - getFavg_prior(c_cell));
                     }
                     // Covariance
                     for (int j = 0; j < cellsNum; j++)
@@ -183,7 +204,10 @@ namespace stoch_oil
             }
 
             for (auto& well : wells)
-                well.perm = exp(getFavg(mesh->cells[well.cell_id])) * props_oil.visc;
+            {
+                const auto& cell = mesh->cells[well.cell_id];
+                well.perm = exp(getFavg(cell) + getSigma2f(cell) / 2.0) * props_oil.visc;
+            }
         };
         inline double getFavg(const Cell& cell) const
         {
@@ -191,8 +215,8 @@ namespace stoch_oil
         };
         inline double getCf(const Cell& cell, const Cell& beta) const
         {
-            assert(fabs(Cf[cell.id][beta.id] - Cf[beta.id][cell.id]) < 1.E-6);
-            assert(fabs(Cf[cell.id][beta.id] - getCf_prior(cell, beta)) < 1.E-6);
+            //assert(fabs(Cf[cell.id][beta.id] - Cf[beta.id][cell.id]) < 1.E-6);
+            //assert(fabs(Cf[cell.id][beta.id] - getCf_prior(cell, beta)) < 1.E-6);
             return Cf[cell.id][beta.id];
         };
         inline double getSigma2f(const Cell& cell) const

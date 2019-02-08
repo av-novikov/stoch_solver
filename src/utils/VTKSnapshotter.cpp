@@ -164,6 +164,8 @@ void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
 		Cp_well[time_step]->SetName(("p_corr_well_step#" + to_string(time_step)).c_str());
 	}
 
+    auto well_id = vtkSmartPointer<vtkIntArray>::New();
+    well_id->SetName("well_id");
 	auto p_var = vtkSmartPointer<vtkDoubleArray>::New();
 	p_var->SetName("pres_variance");
 	auto p_std = vtkSmartPointer<vtkDoubleArray>::New();
@@ -184,6 +186,14 @@ void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
 	qx_std->SetName("qx_standart_deviation");
 	auto qy_std = vtkSmartPointer<vtkDoubleArray>::New();
 	qy_std->SetName("qy_standart_deviation");
+
+    std::vector<vtkSmartPointer<vtkDoubleArray>> cmp;
+    cmp.resize(2);
+    for (int i = 0; i < 2; i++)
+    {
+        cmp[i] = vtkSmartPointer<vtkDoubleArray>::New();
+        cmp[i]->SetName(("CMP_" + to_string(i)).c_str());
+    }
 
 	points->Allocate((num_x + 1) * (num_y + 1));
 	cells->Allocate(num_x * num_y);
@@ -278,16 +288,18 @@ void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
                                                                             model->Cp_next[time_step][cell.id * model->cellsNum + cell.id]));
             }
 
+            double qwe = model->getSigma2f(cell);
             buf2 = (exp(model->getSigma2f(cell)) - 1.0) * buf1 * buf1;
             perm_var->InsertNextValue(M2toMilliDarcy(M2toMilliDarcy(buf2 * R_dim * R_dim) * R_dim * R_dim));
             perm_stand_dev->InsertNextValue(M2toMilliDarcy(sqrt(buf2) * R_dim * R_dim));
             for (int i = 0; i < model->wells.size(); i++)
             {
                 const auto& well = model->wells[i];
-                buf3 = model->Cfp_next[well.cell_id * model->cellsNum + cell.id] * model->P_dim / BAR_TO_PA;
+                buf3 = model->Cfp_next[cell.id * model->cellsNum + well.cell_id] * model->P_dim / BAR_TO_PA;
                 buf4 = model->getSigma2f(cell);
                 buf5 = model->Cp_next[snap_idx][well.cell_id * model->cellsNum + well.cell_id];
-
+                cmp[0]->InsertNextValue(buf3);
+                cmp[1]->InsertNextValue(model->Cfp_next[well.cell_id * model->cellsNum + cell.id] * model->P_dim / BAR_TO_PA);
                 if (fabs(buf3) == 0.0 && (sqrt(buf4) == 0.0 || sqrt(buf5) == 0.0))
                     buf1 = 0.0;
                 else
@@ -315,11 +327,18 @@ void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
                 }
                 Cf_well[i]->InsertNextValue(model->getCf(mesh->cells[well.cell_id], cell));
             }
+
+            auto it = find_if(model->wells.begin(), model->wells.end(), [&](const Well& well) {return well.cell_id == cell.id; });
+            if (it != model->wells.end())
+                well_id->InsertNextValue(it->id + 1);
+            else
+                well_id->InsertNextValue(0);
 		}
 	}
 	grid->SetCells(VTK_QUAD, cells);
 
 	vtkCellData* fd = grid->GetCellData();
+    fd->AddArray(well_id);
 	fd->AddArray(p0);
 	fd->AddArray(p2);
     fd->AddArray(perm);
@@ -333,6 +352,8 @@ void VTKSnapshotter<stoch_oil::StochOil>::dump(const int snap_idx)
     }
 	for (const auto& Cp_cur : Cp_well)
 		fd->AddArray(Cp_cur);
+    for (const auto& cm : cmp)
+        fd->AddArray(cm);
 	fd->AddArray(p_var);
 	fd->AddArray(p_std);
 	fd->AddArray(q_avg_0);
