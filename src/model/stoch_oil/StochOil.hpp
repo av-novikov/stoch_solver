@@ -193,6 +193,8 @@ namespace stoch_oil
                             Cf[i][j] -= mult_mat[i][k2] * getCf_prior(mesh->cells[cond.id], cell2);
                         }
                     }
+                    if (Cf[i][i] < 0.0 && Cf[i][i] > -EQUALITY_TOLERANCE)
+                        Cf[i][i] = 0.0;
                 }
             }
 
