@@ -229,6 +229,10 @@ namespace stoch_oil
         {
             return exp(getFavg(cell));
         };
+        inline double getKavg(const Cell& cell) const
+        {
+            return exp(getFavg(cell) + getSigma2f(cell) / 2.0) * props_oil.visc;
+        };
 
 		adouble solveInner_p0(const Cell& cell) const;
 		adouble solveBorder_p0(const Cell& cell) const;
@@ -245,14 +249,17 @@ namespace stoch_oil
 		adouble solveInner_Cp(const Cell& cell, const Cell& cur_cell, const size_t step_idx, const size_t cur_step_idx) const;
 		adouble solveBorder_Cp(const Cell& cell, const Cell& cur_cell, const size_t step_idx) const;
 		adouble solveSource_Cp(const Well& well, const Cell& cur_cell, const size_t step_idx) const;
+
+        double getRate(const Well& well) const;
+        double getRateVar(const Well& well, const int step_idx) const;
+        double getPwf(const Well& well) const;
+        double getPwfVar(const Well& well, const int step_idx) const;
 	public:
 		StochOil();
 		~StochOil();
 
 		void setProps(const Properties& props);
 		void setPeriod(const int period);
-		double getRate(const Well& well) const;
-		double getPwf(const Well& well) const;
 	};
 };
 

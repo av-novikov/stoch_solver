@@ -234,8 +234,31 @@ double StochOil::getRate(const Well& well) const
         if(well.isCond)
             return well.WI * (p_cell - well.cur_pwf) / props_oil.visc;
         else
-            return well.WI / well.perm * getKg(mesh->cells[well.cell_id]) * ((p_cell - well.cur_pwf) + Cfp_next[well.cell_id * cellsNum + well.cell_id]);
+        {
+            const auto& cell = mesh->cells[well.cell_id];
+            return well.WI / well.perm * getKg(cell) * (exp(getSigma2f(cell) / 2.0) * (p_cell - well.cur_pwf) + Cfp_next[well.cell_id * cellsNum + well.cell_id]);
+        }
 	}
+}
+double StochOil::getRateVar(const Well& well, const int step_idx) const
+{
+    if (well.cur_bound)
+        return 0.0;
+    else
+    {
+        const Cell& cell = mesh->cells[well.cell_id];
+        double Cp0 = Cp_next[step_idx][well.cell_id * cellsNum + well.cell_id];
+        double tmp = well.WI / well.perm * getKg(cell);
+        if (well.isCond)
+            return tmp * tmp * Cp0;
+        else
+        {
+            double dp = p0_next[well.cell_id] - well.cur_pwf;
+            double Cyp0 = Cfp[step_idx][well.cell_id * cellsNum + well.cell_id];
+            double buf = exp(getSigma2f(cell));
+            return tmp * tmp * (Cp0 + 2.0 * dp * Cyp0 + dp * dp * buf * (buf - 1.0));
+        }
+    }
 }
 double StochOil::getPwf(const Well& well) const
 {
@@ -246,10 +269,28 @@ double StochOil::getPwf(const Well& well) const
         if(well.isCond)
             return p_cell + well.cur_rate * props_oil.visc / well.WI;
         else
-            return p_cell + well.cur_rate * well.perm / well.WI / getKg(cell) * (1.0 + getSigma2f(cell) / 2.0);
+            return p_cell + well.cur_rate * well.perm / well.WI / getKg(cell) * exp(getSigma2f(cell) / 2.0);
 	}
 	else
 		return well.cur_pwf;
+}
+double StochOil::getPwfVar(const Well& well, const int step_idx) const
+{
+    if (well.cur_bound)
+    {
+        const Cell& cell = mesh->cells[well.cell_id];
+        double Cp0 = Cp_next[step_idx][well.cell_id * cellsNum + well.cell_id];
+        if (well.isCond)
+            return Cp0;
+        else
+        {
+            double tmp = well.cur_rate * well.perm / well.WI / getKg(cell);
+            double Cyp0 = Cfp[step_idx][well.cell_id * cellsNum + well.cell_id];
+            return Cp0 - 2.0 * tmp * Cyp0 + tmp * tmp * getSigma2f(cell);
+        }
+    }
+    else
+        return 0.0;
 }
 
 adouble StochOil::solveInner_p0(const Cell& cell) const
