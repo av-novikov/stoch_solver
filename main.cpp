@@ -22,7 +22,7 @@ namespace issues
 
 void loadWells(const double x1, const double x2, const double y1, const double y2, 
                 const int num_x, const int num_y, const std::string fileName, 
-                std::vector<Well>& wells, std::vector<stoch_oil::Measurement>& conds)
+                std::vector<Well>& wells, std::vector<stoch_oil::Measurement>& conds, double visc)
 {
     const double hx = (x2 - x1) / (double)num_x;
     const double hy = (y2 - y1) / (double)num_y;
@@ -36,15 +36,18 @@ void loadWells(const double x1, const double x2, const double y1, const double y
     file >> buf;
     while (!file.eof())
     {
-        file >> buf;    id = std::stoi(buf, &sz);
+        id = std::stoi(buf, &sz);
         file >> buf;    x = std::stod(buf, &sz);
         file >> buf;    y = std::stod(buf, &sz);
-        file >> buf;    perm = std::stod(buf, &sz);
+        file >> buf;    perm = visc * exp(std::stod(buf, &sz));
         file >> buf;
         id_x = 1 + (x - x1) / hx;
         id_y = 1 + (y - y1) / hy;
-        wells.push_back(Well(id - 1, (num_y + 2) * id_x + id_y));
-        conds.push_back({ (num_y + 2) * id_x + id_y, perm });
+        //if (id != 17)
+        //{
+            wells.push_back(Well(id, (num_y + 2) * id_x + id_y));
+            conds.push_back({ (num_y + 2) * id_x + id_y, perm });
+        //}
     }
 
     file.close();
@@ -52,8 +55,8 @@ void loadWells(const double x1, const double x2, const double y1, const double y
 
 int main()
 {
-    double x1 = 8402.8,     x2 = 13988.4;
-    double y1 = 24917.4,    y2 = 30242.5;
+    double x1 = 8402.8, x2 = 13900.0;// x2 = 13988.4;
+    double y1 = 24917.4, y2 = 29700.0;// y2 = 30242.5;
     int num_x = 41, num_y = 41;
 
 	stoch_oil::Properties props;
@@ -70,12 +73,12 @@ int main()
     props.num_y = num_y;
 	int num = (props.num_x + 2) * (props.num_y + 2);
 
-	props.props_sk.p_init = props.props_sk.p_out = 275.39  * BAR_TO_PA;
-	props.props_sk.perm = 100.0;
+	props.props_sk.p_init = props.props_sk.p_out = 275.39 * BAR_TO_PA;
+	props.props_sk.perm = 500.0;
 	props.props_sk.m = 0.1;
 	props.props_sk.beta = 4.E-10;
-    props.props_sk.l_f = 100.0;
-	props.props_sk.sigma_f = 0.5;
+    props.props_sk.l_f = 500.0;
+	props.props_sk.sigma_f = 0.66;
 
 	props.props_oil.visc = 1.0;
 	props.props_oil.rho_stc = 887.261;
@@ -83,36 +86,23 @@ int main()
 	props.props_oil.p_ref = props.props_sk.p_init;
 
 	//props.wells.push_back(Well(0, (props.num_y + 2) * (int)(props.num_x / 2 + 1) + (int)(props.num_x / 2 + 1)));
-    loadWells(x1, x2, y1, y2, num_x, num_y, "props/wells.txt", props.wells, props.conditions);
+    loadWells(x1, x2, y1, y2, num_x, num_y, "props/wells_gen.txt", props.wells, props.conditions, props.props_oil.visc);
     for (auto& well1 : props.wells)
     {
         well1.periodsNum = 1;
         well1.period.resize(well1.periodsNum);
         well1.period[0] = 365.0 * 86400.0;
         well1.rate.resize(well1.periodsNum);
-        if(well1.id != 10)
-            well1.rate[0] = -430.0;
-        else
-            well1.rate[0] = -100.0;
+        //if(well1.id != 13)
+            well1.rate[0] = -1000.0;
+        //else
+        //    well1.rate[0] = -100.0;
         well1.pwf.resize(well1.periodsNum);
-        //well1.pwf[0] = 200.0 * BAR_TO_PA;
+        //well1.pwf[0] = 180.0 * BAR_TO_PA;
         well1.leftBoundIsRate.resize(well1.periodsNum);
         well1.leftBoundIsRate[0] = true;
         well1.rw = 0.1;
     }
-
-    //props.conditions.push_back({ props.wells.back().cell_id, 1.0/*props.props_sk.perm*/ });
-    //props.conditions.push_back({ 3 + 3 * (props.num_x + 2), 1.2 * props.props_sk.perm });
-	//props.wells.push_back(Well(1, (props.num_y + 2) * (props.num_x + 1 - 4) + (props.num_y + 1 - 4)));
-	/*auto& well2 = props.wells.back();
-	well2.periodsNum = 1;
-	well2.period.resize(well2.periodsNum);
-	well2.period[0] = 365.0 * 86400.0;
-	well2.rate.resize(well2.periodsNum);
-	well2.rate[0] = 150.0;
-	well2.leftBoundIsRate.resize(well2.periodsNum);
-	well2.leftBoundIsRate[0] = true;
-	well2.rw = 0.1;*/
 
 	Scene<issues::StochOil> scene;
 	scene.load(props);

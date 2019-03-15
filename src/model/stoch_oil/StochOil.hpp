@@ -45,9 +45,9 @@ namespace stoch_oil
 		{
 			return props_sk.m;
 		};
-		inline double getPerm(const Cell& cell) const
+		inline double getPerm_prior(const Cell& cell) const
 		{
-            int ind_x = int(cell.id / (mesh->num_y + 2));
+            /*int ind_x = int(cell.id / (mesh->num_y + 2));
             int ind_y = cell.id % (mesh->num_y + 2);
             int id = cell.id;
             if (cell.type != elem::QUAD)
@@ -68,8 +68,8 @@ namespace stoch_oil
             }
             ind_x = int(id / (mesh->num_y + 2));
             ind_y = mesh->num_y + 1 - id % (mesh->num_y + 2);
-            return props_sk.perm_grd[(ind_x - 1) * mesh->num_y + (ind_y - 1)];
-            //return props_sk.perm;
+            return props_sk.perm_grd[(ind_x - 1) * mesh->num_y + (ind_y - 1)];*/
+            return props_sk.perm;
 		};
         inline double getS(const Cell& cell) const
         {
@@ -79,7 +79,7 @@ namespace stoch_oil
         // Apriori (unconditioned) statistical moments
         inline double getFavg_prior(const Cell& cell) const
         {
-            return log(getPerm(cell) / props_oil.visc) - getSigma2f_prior(cell) / 2.0;
+            return log(getPerm_prior(cell) / props_oil.visc) - getSigma2f_prior(cell) / 2.0;
         };
 		inline double getCf_prior(const Cell& cell, const Cell& beta) const
 		{
@@ -211,6 +211,10 @@ namespace stoch_oil
                 well.perm = exp(getFavg(cell) + getSigma2f(cell) / 2.0) * props_oil.visc;
             }
         };
+        inline double getPerm(const Cell& cell) const
+        {
+            return props_oil.visc * exp(getFavg(cell) + getSigma2f(cell) / 2.0);
+        };
         inline double getFavg(const Cell& cell) const
         {
             return Favg[cell.id];
@@ -228,10 +232,6 @@ namespace stoch_oil
         inline double getKg(const Cell& cell) const
         {
             return exp(getFavg(cell));
-        };
-        inline double getKavg(const Cell& cell) const
-        {
-            return exp(getFavg(cell) + getSigma2f(cell) / 2.0) * props_oil.visc;
         };
 
 		adouble solveInner_p0(const Cell& cell) const;
