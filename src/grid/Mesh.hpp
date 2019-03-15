@@ -1,5 +1,5 @@
-#ifndef RECTANGULAR_UNIFORM_GRID_HPP_
-#define RECTANGULAR_UNIFORM_GRID_HPP_
+#ifndef MESH_HPP_
+#define MESH_HPP_
 
 #include <src/grid/Elem.hpp>
 
@@ -7,7 +7,7 @@ namespace mesh
 {
 	typedef elem::Point Point;
 
-	class RectangularUniformGrid
+	class CellRectangularUniformGrid
 	{
 		template<typename> friend class snapshotter::VTKSnapshotter;
 		template<typename> friend class AbstractMethod;
@@ -21,7 +21,7 @@ namespace mesh
 		const double hx, hy, hz;
 		const double V;
 	public:
-		RectangularUniformGrid(const int _num_x, const int _num_y, const double _hx, const double _hy, const double _hz) :
+		CellRectangularUniformGrid(const int _num_x, const int _num_y, const double _hx, const double _hy, const double _hz) :
 			num_x(_num_x), num_y(_num_y), num((_num_x + 2) * (_num_y + 2)), hx(_hx), hy(_hy), hz(_hz), V(_hx * _hy * _hz) 
 		{
 			Point cur(0.0, 0.0, hz / 2.0);
@@ -71,8 +71,43 @@ namespace mesh
 			cells.push_back(Cell(counter++, elem::BORDER, cur, { 0.0, 0.0, hz }));
 
 		};
-		~RectangularUniformGrid() {};
+		~CellRectangularUniformGrid() {};
 	};
-}
+    class NodeRectangularUniformGrid
+    {
+        template<typename> friend class snapshotter::VTKSnapshotter;
+        template<typename> friend class AbstractMethod;
+    public:
+        typedef elem::Node Node;
+        static const int stencil = 5;
 
-#endif /* RECTANGULAR_UNIFORM_GRID_HPP_ */
+        std::vector<Node> nodes;
+        const int num_x, num_y, num;
+        const double hx, hy, hz;
+        const double V;
+
+        NodeRectangularUniformGrid(const int _num_x, const int _num_y, const double _hx, const double _hy, const double _hz) :
+            num_x(_num_x), num_y(_num_y), num((_num_x + 2) * (_num_y + 2)), hx(_hx), hy(_hy), hz(_hz), V(_hx * _hy * _hz)
+        {
+            Point cur(0.0, 0.0, hz / 2.0);
+            double hx1 = hx / (double)num_x;
+            double hy1 = hy / (double)num_y;
+            const Point size(hx1, hy1, hz);
+            int counter = 0;
+            elem::Type ntype;
+            for (int i = 0; i < num_x + 1; i++)
+            {
+                for (int j = 0; j < num_y + 1; j++)
+                {
+                    ntype = (i * j == 0 || i == num_x || j == num_y) ? elem::BORDER : elem::QUAD;
+                    nodes.push_back(Node(counter++, ntype, cur));
+                    cur.y += hy1;
+                }
+                cur.x += hx1;
+            }
+        };
+        ~NodeRectangularUniformGrid() {};
+    };
+};
+
+#endif /* MESH_HPP_ */

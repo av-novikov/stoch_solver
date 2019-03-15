@@ -3,14 +3,14 @@
 
 #include "src/model/AbstractModel.hpp"
 #include "src/grid/Variables.hpp"
-#include "src/grid/RectangularUniformGrid.hpp"
+#include "src/grid/Mesh.hpp"
 #include "src/model/oil/Properties.hpp"
 #include "src/Well.hpp"
 
 namespace oil
 {
 	typedef var::containers::TapeVar1Phase TapeVariable;
-	class Oil : public AbstractModel<Properties, mesh::RectangularUniformGrid,Oil,var::BasicVariables,var::containers::Var1phase>
+	class Oil : public AbstractModel<Properties, mesh::CellRectangularUniformGrid,Oil,var::BasicVariables,var::containers::Var1phase>
 	{
 		template<typename> friend class snapshotter::VTKSnapshotter;
 		template<typename> friend class AbstractMethod;
