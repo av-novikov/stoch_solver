@@ -6,6 +6,7 @@
 
 #include "src/model/oil/Oil.hpp"
 #include "src/model/stoch_oil/StochOil.hpp"
+#include "src/model/dual_stoch_oil/DualStochOil.hpp"
 
 using namespace std;
 
@@ -120,7 +121,6 @@ void AbstractMethod<stoch_oil::StochOil>::averValue(std::array<double, var_size>
 		val /= mesh->V;
 }
 
-
 template <class modelType>
 AbstractDualGridMethod<modelType>::AbstractDualGridMethod(modelType* _model) : model(_model), cell_mesh(_model->getCellMesh()), node_mesh(_model->getCellMesh()),
 size(_model->getCellsNum()), Tt(model->wells.back().period[model->wells.back().periodsNum - 1])
@@ -170,42 +170,15 @@ void AbstractDualGridMethod<modelType>::copyTimeLayer()
 {
     model->u_prev = model->u_iter = model->u_next;
 }
-void AbstractDualGridMethod<stoch_oil::StochOil>::copyIterLayer()
-{
+void AbstractDualGridMethod<dual_stoch_oil::DualStochOil>::copyIterLayer()
+{   
 }
-void AbstractDualGridMethod<stoch_oil::StochOil>::copyTimeLayer()
+void AbstractDualGridMethod<dual_stoch_oil::DualStochOil>::copyTimeLayer()
 {
 }
 
 template <class modelType>
 double AbstractDualGridMethod<modelType>::convergance(int& ind, int& varInd)
-{
-    double relErr = 0.0;
-    double cur_relErr = 0.0;
-
-    varInd = 0;
-    auto diff = std::abs((model->u_next - model->u_iter) / model->u_next);
-    auto max_iter = std::max_element(std::begin(diff), std::end(diff));
-    ind = std::distance(std::begin(diff), max_iter);
-
-    return *max_iter;
-}
-template <class modelType>
-void AbstractDualGridMethod<modelType>::averValue(std::array<double, var_size>& aver)
-{
-    std::fill(aver.begin(), aver.end(), 0.0);
-
-    for (int i = 0; i < var_size; i++)
-    {
-        const auto var = static_cast<std::valarray<double>>(model->u_next[std::slice(i, model->cellsNum, var_size)]);
-        int cell_idx = 0;
-        for (const auto& cell : mesh->cells)
-            aver[i] += var[cell_idx++] * cell.V;
-    }
-    for (auto& val : aver)
-        val /= mesh->V;
-}
-double AbstractDualGridMethod<stoch_oil::StochOil>::convergance(int& ind, int& varInd)
 {
     double relErr = 0.0;
     double cur_relErr = 0.0;
@@ -217,7 +190,8 @@ double AbstractDualGridMethod<stoch_oil::StochOil>::convergance(int& ind, int& v
 
     return *max_iter;
 }
-void AbstractDualGridMethod<stoch_oil::StochOil>::averValue(std::array<double, var_size>& aver)
+template <class modelType>
+void AbstractDualGridMethod<modelType>::averValue(std::array<double, var_size>& aver)
 {
     std::fill(aver.begin(), aver.end(), 0.0);
 
@@ -234,4 +208,4 @@ void AbstractDualGridMethod<stoch_oil::StochOil>::averValue(std::array<double, v
 
 template class AbstractMethod<oil::Oil>;
 template class AbstractMethod<stoch_oil::StochOil>;
-template class AbstractDualGridMethod<stoch_oil::StochOil>;
+template class AbstractDualGridMethod<dual_stoch_oil::DualStochOil>;

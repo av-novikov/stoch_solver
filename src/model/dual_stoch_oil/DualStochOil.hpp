@@ -1,33 +1,33 @@
-#ifndef STOCH_OIL_HPP_
-#define STOCH_OIL_HPP_
+#ifndef DUAL_STOCH_OIL_HPP_
+#define DUAL_STOCH_OIL_HPP_
 
 #include "src/model/AbstractModel.hpp"
 #include "src/grid/Variables.hpp"
 #include "src/grid/Mesh.hpp"
-#include "src/model/stoch_oil/Properties.hpp"
+#include "src/model/dual_stoch_oil/Properties.hpp"
 #include "src/Well.hpp"
 #include "paralution.hpp"
 
-namespace stoch_oil
+namespace dual_stoch_oil
 {
 	/*typedef var::containers::TapeVar1Phase TapeVariable0;
 	typedef var::containers::TapeStochVar1Phase1 TapeVariable1;
 	typedef var::containers::TapeStochVar1Phase2 TapeVariable2;
 	typedef var::containers::TapeStochVar1Phase3 TapeVariable3;*/
-	class StochOil : public AbstractModel<Properties,mesh::CellRectangularUniformGrid,StochOil,var::StochVariables,
+	class DualStochOil : public AbstractDualGridModel<Properties,mesh::CellRectangularUniformGrid, mesh::NodeRectangularUniformGrid,DualStochOil,var::DualStochVariables,
 				var::containers::Var1phase>
 	{
 		template<typename> friend class snapshotter::VTKSnapshotter;
-		template<typename> friend class AbstractMethod;
-		friend class StochOilMethod;
+		template<typename> friend class AbstractDualGridMethod;
+		friend class DualStochOilMethod;
 	public:
 
 	protected:
 		void makeDimLess();
 		void setInitialState();
 
-		adouble* x;
-		adouble* h;
+		adouble *x_cell, *x_node;
+		adouble *h_cell, *h_node;
 
 		int possible_steps_num, start_time_simple_approx;
 		Skeleton_Props props_sk;
@@ -113,10 +113,10 @@ namespace stoch_oil
                 int counter = 0;
                 for (int i = 0; i < conditions.size(); i++)
                 {
-                    const auto& cell1 = mesh->cells[conditions[i].id];
+                    const auto& cell1 = cell_mesh->cells[conditions[i].id];
                     for (int j = 0; j < conditions.size(); j++)
                     {
-                        const auto& cell2 = mesh->cells[conditions[j].id];
+                        const auto& cell2 = cell_mesh->cells[conditions[j].id];
 
                         ind_i[counter] = i;     ind_j[counter] = j;
                         cond_cov[counter] = getCf_prior(cell1, cell2);
@@ -160,14 +160,14 @@ namespace stoch_oil
                 std::for_each(mult_mat.begin(), mult_mat.end(), [&](std::vector<double>& vec) { vec.resize(conditions.size(), 0.0); });
                 for (int i = 0; i < cellsNum; i++)
                 {
-                    const Cell& cell = mesh->cells[i];
+                    const Cell& cell = cell_mesh->cells[i];
                     for (int k = 0; k < conditions.size(); k++)
                     {
-                        const Cell& c_cell = mesh->cells[conditions[k].id];
+                        const Cell& c_cell = cell_mesh->cells[conditions[k].id];
                         s = 0.0;
                         for (int k1 = 0; k1 < conditions.size(); k1++)
                         {
-                            const Cell& c_cell1 = mesh->cells[conditions[k1].id];
+                            const Cell& c_cell1 = cell_mesh->cells[conditions[k1].id];
                             s += getCf_prior(cell, c_cell1) * inv_cond_cov[k1 * conditions.size() + k];
                         }
                         mult_mat[i][k] = s;
@@ -176,21 +176,21 @@ namespace stoch_oil
 
                 for (int i = 0; i < cellsNum; i++)
                 {
-                    const Cell& cell1 = mesh->cells[i];
+                    const Cell& cell1 = cell_mesh->cells[i];
                     for (int k2 = 0; k2 < conditions.size(); k2++)
                     {
                         const auto& cond = conditions[k2];
-                        const auto c_cell = mesh->cells[cond.id];
+                        const auto c_cell = cell_mesh->cells[cond.id];
                         Favg[i] += mult_mat[i][k2] * (log(cond.perm / props_oil.visc) - getFavg_prior(c_cell));
                     }
                     // Covariance
                     for (int j = 0; j < cellsNum; j++)
                     {
-                        const Cell& cell2 = mesh->cells[j];
+                        const Cell& cell2 = cell_mesh->cells[j];
                         for (int k2 = 0; k2 < conditions.size(); k2++)
                         {
                             const auto& cond = conditions[k2];
-                            Cf[i][j] -= mult_mat[i][k2] * getCf_prior(mesh->cells[cond.id], cell2);
+                            Cf[i][j] -= mult_mat[i][k2] * getCf_prior(cell_mesh->cells[cond.id], cell2);
                         }
                     }
                     if (Cf[i][i] < 0.0 && Cf[i][i] > -EQUALITY_TOLERANCE)
@@ -207,7 +207,7 @@ namespace stoch_oil
 
             for (auto& well : wells)
             {
-                const auto& cell = mesh->cells[well.cell_id];
+                const auto& cell = cell_mesh->cells[well.cell_id];
                 well.perm = exp(getFavg(cell) + getSigma2f(cell) / 2.0) * props_oil.visc;
             }
         };
@@ -255,12 +255,12 @@ namespace stoch_oil
         double getPwf(const Well& well) const;
         double getPwfVar(const Well& well, const int step_idx) const;
 	public:
-		StochOil();
-		~StochOil();
+		DualStochOil();
+		~DualStochOil();
 
 		void setProps(const Properties& props);
 		void setPeriod(const int period);
 	};
 };
 
-#endif /* STOCH_OIL_HPP_ */
+#endif /* DUAL_STOCH_OIL_HPP_ */
