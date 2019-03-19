@@ -3,6 +3,7 @@
 #include "src/Scene.hpp"
 #include "src/model/oil/OilMethod.hpp"
 #include "src/model/stoch_oil/StochOilMethod.hpp"
+#include "src/model/dual_stoch_oil/DualStochOilMethod.hpp"
 
 using namespace std;
 
@@ -17,6 +18,7 @@ namespace issues
 
 	struct Oil : public Issue<oil::Oil, oil::OilMethod> {};
 	struct StochOil : public Issue<stoch_oil::StochOil, stoch_oil::StochOilMethod> {};
+    struct DualStochOil : public Issue<dual_stoch_oil::DualStochOil, dual_stoch_oil::DualStochOilMethod> {};
 }
 
 
@@ -36,7 +38,7 @@ void loadWells(const double x1, const double x2, const double y1, const double y
     file >> buf;
     while (!file.eof())
     {
-        id = std::stoi(buf, &sz);
+        id = (int)(std::stod(buf, &sz));
         file >> buf;    x = std::stod(buf, &sz);
         file >> buf;    y = std::stod(buf, &sz);
         file >> buf;    perm = visc * exp(std::stod(buf, &sz));
@@ -52,7 +54,6 @@ void loadWells(const double x1, const double x2, const double y1, const double y
 
     file.close();
 }
-
 int main()
 {
     double x1 = 8402.8, x2 = 13900.0;// x2 = 13988.4;
