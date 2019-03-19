@@ -57,8 +57,7 @@ namespace stoch_oil
 		void computeJac_Cfp(const int cell_id);
 		void computeJac_p2();
 		void computeJac_Cp(const int cell_id, const size_t time_step);
-		void fillIndices0();
-		void fillIndices1();
+		void fillIndices();
 		void fill_p0();
 		void fill_Cfp(const int cell_id);
 		void fill_p2();

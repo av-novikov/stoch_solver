@@ -36,16 +36,13 @@ namespace dual_stoch_oil
         // Conditioning = Kriging
         std::vector<Measurement> conditions;
         double* inv_cond_cov;
-        std::vector<double> Favg;
-        std::vector<std::vector<double>> Cf;
+        std::vector<double> Favg_cells, Favg_nodes;
+        std::vector<std::vector<double>> Cf_cells, Cf_nodes;
 
         void loadPermAvg(const std::string fileName);
         void writeCPS(const int i);
-		inline double getPoro(const Cell& cell) const
-		{
-			return props_sk.m;
-		};
-		inline double getPerm_prior(const Cell& cell) const
+        template<class TElem>
+		inline double getPerm_prior(const TElem& elem) const
 		{
             /*int ind_x = int(cell.id / (mesh->num_y + 2));
             int ind_y = cell.id % (mesh->num_y + 2);
@@ -71,33 +68,32 @@ namespace dual_stoch_oil
             return props_sk.perm_grd[(ind_x - 1) * mesh->num_y + (ind_y - 1)];*/
             return props_sk.perm;
 		};
-        inline double getS(const Cell& cell) const
+        template<class TElem>
+        inline double getS(const TElem& cell) const
         {
-            return getPoro(cell) * (props_oil.beta + props_sk.beta);
+            return props_sk.m * (props_oil.beta + props_sk.beta);
         };
-
         // Apriori (unconditioned) statistical moments
-        inline double getFavg_prior(const Cell& cell) const
+        template<class TElem>
+        inline double getFavg_prior(const TElem& elem) const
         {
-            return log(getPerm_prior(cell) / props_oil.visc) - getSigma2f_prior(cell) / 2.0;
+            return log(getPerm_prior(elem) / props_oil.visc) - getSigma2f_prior(elem) / 2.0;
         };
-		inline double getCf_prior(const Cell& cell, const Cell& beta) const
+        inline double getCf_coord(const point::Point& p1, const point::Point& p2) const
+        {
+            const double dist = point::distance(p1, p2) / props_sk.l_f;
+            return props_sk.sigma_f * props_sk.sigma_f * exp(-dist * dist);
+            //return props_sk.sigma_f * props_sk.sigma_f * exp(-dist);
+        };
+        template<class TElem>
+		inline double getCf_prior(const TElem& elem1, const TElem& elem2) const
 		{
-			auto corrFoo1 = [this](const auto& p1, const auto& p2) -> double
-			{
-				return props_sk.sigma_f * props_sk.sigma_f * exp(-point::distance(p1, p2) / props_sk.l_f);
-			};
-			auto corrFoo2 = [this](const auto& p1, const auto& p2) -> double
-			{
-				const double dist = point::distance(p1, p2) / props_sk.l_f;
-				return props_sk.sigma_f * props_sk.sigma_f * exp(-dist * dist);
-			};
-
-			return corrFoo2(cell.cent, beta.cent);
+			return getCf_coord(elem1.cent, elem2.cent);
 		};
-		inline double getSigma2f_prior(const Cell& cell) const
+        template<class TElem>
+		inline double getSigma2f_prior(const TElem& elem) const
 		{
-			return getCf_prior(cell, cell);
+			return getCf_prior(elem, elem);
 		};
         // Apostreriori (conditioned) statistical moments
         void calculateConditioning()
@@ -134,7 +130,6 @@ namespace dual_stoch_oil
 
                 double s;
                 // Check inversion
-                counter = 0;
                 /*for (int i = 0; i < conditions.size(); i++)
                 {
                     for (int j = 0; j < conditions.size(); j++)
@@ -154,10 +149,10 @@ namespace dual_stoch_oil
                 }*/
                 delete[] ind_i, ind_j;
                 delete[] cond_cov;
-
-                std::vector<std::vector<double>> mult_mat;
-                mult_mat.resize(cellsNum);
-                std::for_each(mult_mat.begin(), mult_mat.end(), [&](std::vector<double>& vec) { vec.resize(conditions.size(), 0.0); });
+                // Mult for cell grid
+                std::vector<std::vector<double>> cell_mult_mat;
+                cell_mult_mat.resize(cellsNum);
+                std::for_each(cell_mult_mat.begin(), cell_mult_mat.end(), [&](std::vector<double>& vec) { vec.resize(conditions.size(), 0.0); });
                 for (int i = 0; i < cellsNum; i++)
                 {
                     const Cell& cell = cell_mesh->cells[i];
@@ -170,10 +165,29 @@ namespace dual_stoch_oil
                             const Cell& c_cell1 = cell_mesh->cells[conditions[k1].id];
                             s += getCf_prior(cell, c_cell1) * inv_cond_cov[k1 * conditions.size() + k];
                         }
-                        mult_mat[i][k] = s;
+                        cell_mult_mat[i][k] = s;
                     }
                 }
-
+                // Mult for node grid
+                std::vector<std::vector<double>> node_mult_mat;
+                node_mult_mat.resize(nodesNum);
+                std::for_each(node_mult_mat.begin(), node_mult_mat.end(), [&](std::vector<double>& vec) { vec.resize(conditions.size(), 0.0); });
+                for (int i = 0; i < nodesNum; i++)
+                {
+                    const Node& node = node_mesh->nodes[i];
+                    for (int k = 0; k < conditions.size(); k++)
+                    {
+                        const Node& c_node = node_mesh->nodes[conditions[k].id];
+                        s = 0.0;
+                        for (int k1 = 0; k1 < conditions.size(); k1++)
+                        {
+                            const Node& c_node1 = node_mesh->nodes[conditions[k1].id];
+                            s += getCf_prior(node, c_node1) * inv_cond_cov[k1 * conditions.size() + k];
+                        }
+                        node_mult_mat[i][k] = s;
+                    }
+                }
+                // Kriging for cells
                 for (int i = 0; i < cellsNum; i++)
                 {
                     const Cell& cell1 = cell_mesh->cells[i];
@@ -181,7 +195,7 @@ namespace dual_stoch_oil
                     {
                         const auto& cond = conditions[k2];
                         const auto c_cell = cell_mesh->cells[cond.id];
-                        Favg[i] += mult_mat[i][k2] * (log(cond.perm / props_oil.visc) - getFavg_prior(c_cell));
+                        Favg_cells[i] += cell_mult_mat[i][k2] * (log(cond.perm / props_oil.visc) - getFavg_prior(c_cell));
                     }
                     // Covariance
                     for (int j = 0; j < cellsNum; j++)
@@ -190,11 +204,34 @@ namespace dual_stoch_oil
                         for (int k2 = 0; k2 < conditions.size(); k2++)
                         {
                             const auto& cond = conditions[k2];
-                            Cf[i][j] -= mult_mat[i][k2] * getCf_prior(cell_mesh->cells[cond.id], cell2);
+                            Cf_cells[i][j] -= cell_mult_mat[i][k2] * getCf_prior(cell_mesh->cells[cond.id], cell2);
                         }
                     }
-                    if (Cf[i][i] < 0.0 && Cf[i][i] > -EQUALITY_TOLERANCE)
-                        Cf[i][i] = 0.0;
+                    if (Cf_cells[i][i] < 0.0 && Cf_cells[i][i] > -EQUALITY_TOLERANCE)
+                        Cf_cells[i][i] = 0.0;
+                }
+                // Kriging for nodes
+                for (int i = 0; i < nodesNum; i++)
+                {
+                    const Node& node1 = node_mesh->nodes[i];
+                    for (int k2 = 0; k2 < conditions.size(); k2++)
+                    {
+                        const auto& cond = conditions[k2];
+                        const auto c_node = node_mesh->nodes[cond.id];
+                        Favg_nodes[i] += node_mult_mat[i][k2] * (log(cond.perm / props_oil.visc) - getFavg_prior(c_node));
+                    }
+                    // Covariance
+                    for (int j = 0; j < nodesNum; j++)
+                    {
+                        const Node& node2 = node_mesh->nodes[j];
+                        for (int k2 = 0; k2 < conditions.size(); k2++)
+                        {
+                            const auto& cond = conditions[k2];
+                            Cf_nodes[i][j] -= node_mult_mat[i][k2] * getCf_prior(node_mesh->nodes[cond.id], node2);
+                        }
+                    }
+                    if (Cf_nodes[i][i] < 0.0 && Cf_nodes[i][i] > -EQUALITY_TOLERANCE)
+                        Cf_nodes[i][i] = 0.0;
                 }
             }
 
@@ -215,23 +252,41 @@ namespace dual_stoch_oil
         {
             return props_oil.visc * exp(getFavg(cell) + getSigma2f(cell) / 2.0);
         };
-        inline double getFavg(const Cell& cell) const
+        template<class TElem>
+        inline double getFavg(const TElem& elem) const
         {
-            return Favg[cell.id];
+            return 0.0;
         };
-        inline double getCf(const Cell& cell, const Cell& beta) const
+        inline double getFavg(const Cell& elem) const
         {
-            //assert(fabs(Cf[cell.id][beta.id] - Cf[beta.id][cell.id]) < 1.E-6);
-            //assert(fabs(Cf[cell.id][beta.id] - getCf_prior(cell, beta)) < 1.E-6);
-            return Cf[cell.id][beta.id];
+            return Favg_cells[elem.id];
         };
-        inline double getSigma2f(const Cell& cell) const
+        inline double getFavg(const Node& elem) const
         {
-            return getCf(cell, cell);
+            return Favg_nodes[elem.id];
         };
-        inline double getKg(const Cell& cell) const
+        template<class TElem>
+        inline double getCf(const TElem& elem1, const TElem& elem2) const
         {
-            return exp(getFavg(cell));
+            return 0.0;
+        };
+        inline double getCf(const Cell& elem1, const Cell& elem2) const
+        {
+            return Cf_cells[elem1.id][elem2.id];
+        };
+        inline double getCf(const Node& elem1, const Node& elem2) const
+        {
+            return Cf_nodes[elem1.id][elem2.id];
+        };
+        template<class TElem>
+        inline double getSigma2f(const TElem& elem) const
+        {
+            return getCf(elem, elem);
+        };
+        template<class TElem>
+        inline double getKg(const TElem& elem) const
+        {
+            return exp(getFavg(elem));
         };
 
 		adouble solveInner_p0(const Cell& cell) const;
@@ -241,6 +296,9 @@ namespace dual_stoch_oil
 		adouble solveInner_Cfp(const Cell& cell, const Cell& cur_cell) const;
 		adouble solveBorder_Cfp(const Cell& cell, const Cell& cur_cell) const;
 		adouble solveSource_Cfp(const Well& well, const Cell& cur_cell) const;
+
+        adouble solveInnerNode_Cfp(const Node& node, const Node& cur_node) const;
+        adouble solveBorderNode_Cfp(const Node& node, const Node& cur_node) const;
 
 		adouble solveInner_p2(const Cell& cell) const;
 		adouble solveBorder_p2(const Cell& cell) const;

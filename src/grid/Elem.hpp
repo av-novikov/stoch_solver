@@ -7,7 +7,7 @@ namespace elem
 {
 	typedef point::Point Point;
 
-	enum Type {QUAD, BORDER};
+	enum Type {QUAD, BORDER, CORNER};
 	template <int MaxStencilNum>
 	class Element
 	{
@@ -22,8 +22,10 @@ namespace elem
 				return MaxStencilNum;
 			else if (type == BORDER)
 				return 2;
-			else
-				return -1;
+			else if (type == CORNER)
+				return 3;
+            else 
+                return -1;
 		};
 		std::array<int, MaxStencilNum> stencil;
 		std::array<double, MaxStencilNum - 1> trans;

@@ -20,7 +20,7 @@ namespace dual_stoch_oil
 		void solveStep_Cp();
 
 		std::ofstream plot_P, plot_Q, pvd;
-		ParSolver solver0, solver1;
+		ParSolver solver0, solver1, solver_node;
 		int step_idx;
 		double averVal, averValPrev, dAverVal;
 
@@ -29,7 +29,7 @@ namespace dual_stoch_oil
 		double* dmat;
 		int* offset;
 		int* col;
-
+        // First solver
 		double** jac0;
 		double* y0;
 		int* ind_i0;
@@ -38,9 +38,8 @@ namespace dual_stoch_oil
 		int* ind_rhs0;
 		double* rhs0;
 		int* cols0;
-		// Number of non-zero elements in sparse matrix
 		int elemNum0;
-
+        // Second solver
 		double** jac1;
 		double* y1;
 		int* ind_i1;
@@ -49,16 +48,25 @@ namespace dual_stoch_oil
 		int* ind_rhs1;
 		double* rhs1;
 		int* cols1;
-		// Number of non-zero elements in sparse matrix
 		int elemNum1;
+        // Node solver
+        double** jac_node;
+        double* y_node;
+        int* ind_i_node;
+        int* ind_j_node;
+        double* a_node;
+        int* ind_rhs_node;
+        double* rhs_node;
+        int* cols_node;
+        int elemNum_node;
+
 		bool avoidMatrixCalc;
 
 		void computeJac_p0();
 		void computeJac_Cfp(const int cell_id);
 		void computeJac_p2();
 		void computeJac_Cp(const int cell_id, const size_t time_step);
-		void fillIndices0();
-		void fillIndices1();
+		void fillIndices();
 		void fill_p0();
 		void fill_Cfp(const int cell_id);
 		void fill_p2();

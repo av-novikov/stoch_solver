@@ -28,6 +28,15 @@ DualStochOilMethod::DualStochOilMethod(Model* _model) : AbstractDualGridMethod<M
 	ind_rhs1 = new int[strNum1];
 	rhs1 = new double[strNum1];
 
+    const int strNum_node = model->nodesNum;
+    y_node = new double[strNum_node];
+    ind_i_node = new int[NodeMesh::stencil * strNum_node];
+    ind_j_node = new int[NodeMesh::stencil * strNum_node];
+    //cols = new int[strNum];
+    a_node = new double[NodeMesh::stencil * strNum_node];
+    ind_rhs_node = new int[strNum_node];
+    rhs_node = new double[strNum_node];
+
 	//options[0] = 0;          /* sparsity pattern by index domains (default) */
 	//options[1] = 0;          /*                         safe mode (default) */
 	//options[2] = 0;          /*              not required if options[0] = 0 */
@@ -42,13 +51,14 @@ DualStochOilMethod::DualStochOilMethod(Model* _model) : AbstractDualGridMethod<M
 };
 DualStochOilMethod::~DualStochOilMethod()
 {
-	delete[] y0, y1;
-
 	delete[] ind_i0, ind_j0, ind_rhs0;
-	delete[] a0, rhs0;
+	delete[] y0, a0, rhs0;
 
 	delete[] ind_i1, ind_j1, ind_rhs1;
-	delete[] a1, rhs1;
+	delete[] y1, a1, rhs1;
+
+    delete[] ind_i_node, ind_j_node, ind_rhs_node;
+    delete[] y_node, a_node, rhs_node;
 
 	plot_P.close();
 	plot_Q.close();
@@ -101,10 +111,10 @@ void DualStochOilMethod::start()
 {
 	step_idx = 0;
 
-	fillIndices0();
+	fillIndices();
 	solver0.Init(model->cellsNum, 1.e-15, 1.e-15);
-	fillIndices1();
 	solver1.Init(model->cellsNum, 1.e-15, 1.e-15);
+    solver_node.Init(model->nodesNum, 1.e-15, 1.e-15);
 
 	model->setPeriod(curTimePeriod);
 	while (cur_t < Tt)
@@ -121,49 +131,43 @@ void DualStochOilMethod::start()
 	model->snapshot_all(step_idx);
 	writeData();
 }
-void DualStochOilMethod::fillIndices0()
+void DualStochOilMethod::fillIndices()
 {
 	int counter = 0;
 
 	for (int i = 0; i < model->cellsNum; i++)
 	{
 		auto& cell = cell_mesh->cells[i];
-		getMatrixStencil(cell);
+		getCellMatrixStencil(cell);
 
 		for (size_t i = 0; i < var_size; i++)
 			for (const int idx : cell.stencil)
 				for (size_t j = 0; j < var_size; j++)
 				{
-					ind_i0[counter] = var_size * cell.id + i;			ind_j0[counter++] = var_size * idx + j;
+					ind_i0[counter] = ind_i1[counter] = var_size * cell.id + i;			
+                    ind_j0[counter] = ind_j1[counter] = var_size * idx + j;
+                    counter++;
 				}
+        ind_rhs0[i] = ind_rhs1[i] = i;
 	}
+	elemNum0 = elemNum1 = counter;
 
-	elemNum0 = counter;
+    counter = 0;
+    for (int i = 0; i < model->nodesNum; i++)
+    {
+        auto& node = node_mesh->nodes[i];
+        getNodeMatrixStencil(node);
 
-	for (int i = 0; i < var_size * model->cellsNum; i++)
-		ind_rhs0[i] = i;
-};
-void DualStochOilMethod::fillIndices1()
-{
-	int counter = 0;
-
-	for (int i = 0; i < model->cellsNum; i++)
-	{
-		auto& cell = cell_mesh->cells[i];
-		getMatrixStencil(cell);
-
-		for (size_t i = 0; i < var_size; i++)
-			for (const int idx : cell.stencil)
-				for (size_t j = 0; j < var_size; j++)
-				{
-					ind_i1[counter] = var_size * cell.id + i;			ind_j1[counter++] = var_size * idx + j;
-				}
-	}
-
-	elemNum1 = counter;
-
-	for (int i = 0; i < model->cellsNum; i++)
-		ind_rhs1[i] = i;
+        for (size_t i = 0; i < var_size; i++)
+            for (const int idx : node.stencil)
+                for (size_t j = 0; j < var_size; j++)
+                {
+                    ind_i_node[counter] = var_size * node.id + i;   ind_j_node[counter] = var_size * idx + j;
+                    counter++;
+                }
+        ind_rhs_node[i] = i;
+    }
+    elemNum_node = counter;
 };
 
 void DualStochOilMethod::solveStep()
@@ -227,13 +231,13 @@ void DualStochOilMethod::checkInvertMatrix() const
     std::ofstream file("ffile.txt", std::ofstream::out);
 	int ind0 = 0, ind1 = 0, end_idx = 0;
 	double val;
-	for (int i = 0; i < size; i++)
+	for (int i = 0; i < cells_size; i++)
 	{
-		for (int j = 0; j < size; j++)
+		for (int j = 0; j < cells_size; j++)
 		{
 			val = 0.0;
 			//ind = end_idx;
-			for (size_t k = 0; k < size; k++)
+			for (int k = 0; k < cells_size; k++)
 			{
                 if (ind_i1[ind0] == i && ind_j1[ind0] == k)
                 {
@@ -308,7 +312,7 @@ void DualStochOilMethod::solveStep_Cp()
 
 void DualStochOilMethod::copySolution_p0(const paralution::LocalVector<double>& sol)
 {
-	for (int i = 0; i < size; i++)
+	for (int i = 0; i < cells_size; i++)
 		model->p0_next[i] += sol[i];
 }
 /*void DualStochOilMethod::copySolution_Cfp(const int cell_id, const paralution::LocalVector<double>& sol)
@@ -319,17 +323,17 @@ void DualStochOilMethod::copySolution_p0(const paralution::LocalVector<double>& 
 void DualStochOilMethod::copySolution_Cfp(const int cell_id)
 {
 	double s;
-	for (int i = 0; i < size; i++)
+	for (int i = 0; i < cells_size; i++)
 	{
 		s = 0.0;
 		for (int j = offset[i]; j < offset[i + 1]; j++)
 			s += dmat[j] * rhs1[col[j]];
-		model->Cfp_next[cell_id * size + i] += s;
+		model->Cfp_next[cell_id * cells_size + i] += s;
 	}
 }
 void DualStochOilMethod::copySolution_p2(const paralution::LocalVector<double>& sol)
 {
-	for (int i = 0; i < size; i++)
+	for (int i = 0; i < cells_size; i++)
 		model->p2_next[i] += sol[i];
 }
 /*void DualStochOilMethod::copySolution_Cp(const int cell_id, const paralution::LocalVector<double>& sol, const size_t time_step)
@@ -340,12 +344,12 @@ void DualStochOilMethod::copySolution_p2(const paralution::LocalVector<double>& 
 void DualStochOilMethod::copySolution_Cp(const int cell_id, const size_t time_step)
 {
 	double s;
-	for (size_t i = 0; i < size; i++)
+	for (size_t i = 0; i < cells_size; i++)
 	{
 		s = 0.0;
 		for (size_t j = offset[i]; j < offset[i + 1]; j++)
 			s += dmat[j] * rhs1[col[j]];
-		model->Cp_next[time_step][cell_id * size + i] += s;
+		model->Cp_next[time_step][cell_id * cells_size + i] += s;
 	}
 }
 
@@ -353,10 +357,10 @@ void DualStochOilMethod::computeJac_p0()
 {
 	trace_on(0);
 
-	for (size_t i = 0; i < size; i++)
+	for (size_t i = 0; i < cells_size; i++)
 		model->x_cell[i] <<= model->p0_next[i * var_size];
 
-	for (int i = 0; i < size; i++)
+	for (int i = 0; i < cells_size; i++)
 	{
 		const auto& cell = cell_mesh->cells[i];
 
@@ -369,7 +373,7 @@ void DualStochOilMethod::computeJac_p0()
     for (const auto& well : model->wells)
         model->h_cell[well.cell_id * var_size] += model->solveSource_p0(well);
 
-	for (int i = 0; i < var_size * size; i++)
+	for (int i = 0; i < var_size * cells_size; i++)
 		model->h_cell[i] >>= y0[i];
 
 	trace_off();
@@ -379,10 +383,10 @@ void DualStochOilMethod::computeJac_Cfp(const int cell_id)
 	trace_on(1);
 
 	const auto& cur_cell = cell_mesh->cells[cell_id];
-	for (size_t i = 0; i < size; i++)
-		model->x_cell[i] <<= model->Cfp_next[size * cell_id + i];
+	for (size_t i = 0; i < cells_size; i++)
+		model->x_cell[i] <<= model->Cfp_next[cells_size * cell_id + i];
 
-	for (int i = 0; i < size; i++)
+	for (int i = 0; i < cells_size; i++)
 	{
 		const auto& cell = cell_mesh->cells[i];
 
@@ -394,7 +398,7 @@ void DualStochOilMethod::computeJac_Cfp(const int cell_id)
     for (const auto& well : model->wells)
         model->h_cell[well.cell_id] += model->solveSource_Cfp(well, cur_cell) / model->P_dim;
 
-	for (int i = 0; i < size; i++)
+	for (int i = 0; i < cells_size; i++)
 		model->h_cell[i] >>= y1[i];
 
 	trace_off();
@@ -403,10 +407,10 @@ void DualStochOilMethod::computeJac_p2()
 {
 	trace_on(2);
 
-	for (size_t i = 0; i < size; i++)
+	for (size_t i = 0; i < cells_size; i++)
 		model->x_cell[i] <<= model->p2_next[i * var_size];
 
-	for (int i = 0; i < size; i++)
+	for (int i = 0; i < cells_size; i++)
 	{
 		const auto& cell = cell_mesh->cells[i];
 
@@ -419,7 +423,7 @@ void DualStochOilMethod::computeJac_p2()
 	for (const auto& well : model->wells)
 		model->h_cell[well.cell_id * var_size] += model->solveSource_p2(well);
 
-	for (int i = 0; i < var_size * size; i++)
+	for (int i = 0; i < var_size * cells_size; i++)
 		model->h_cell[i] >>= y0[i];
 
 	trace_off();
@@ -429,10 +433,10 @@ void DualStochOilMethod::computeJac_Cp(const int cell_id, const size_t time_step
 	trace_on(3);
 
 	const auto& cur_cell = cell_mesh->cells[cell_id];
-	for (size_t i = 0; i < size; i++)
-		model->x_cell[i] <<= model->Cp_next[time_step][size * cell_id + i];
+	for (size_t i = 0; i < cells_size; i++)
+		model->x_cell[i] <<= model->Cp_next[time_step][cells_size * cell_id + i];
 
-	for (int i = 0; i < size; i++)
+	for (int i = 0; i < cells_size; i++)
 	{
 		const auto& cell = cell_mesh->cells[i];
 
@@ -444,7 +448,7 @@ void DualStochOilMethod::computeJac_Cp(const int cell_id, const size_t time_step
 	for (const auto& well : model->wells)
 		model->h_cell[well.cell_id] += model->solveSource_Cp(well, cur_cell, time_step) / model->P_dim;
 
-	for (int i = 0; i < size; i++)
+	for (int i = 0; i < cells_size; i++)
 		model->h_cell[i] >>= y1[i];
 
 	trace_off();
@@ -456,7 +460,7 @@ void DualStochOilMethod::fill_p0()
 		&model->p0_next[0], &elemNum0, (unsigned int**)(&ind_i0), (unsigned int**)(&ind_j0), &a0, options);
 
 	int counter = 0;
-	for (int j = 0; j < size; j++)
+	for (int j = 0; j < cells_size; j++)
 	{
 		const auto& cell = cell_mesh->cells[j];
 		rhs0[cell.id] = -y0[cell.id];
@@ -469,7 +473,7 @@ void DualStochOilMethod::fill_Cfp(const int cell_id)
 			&model->Cfp_next[cell_id * model->cellsNum], &elemNum1, (unsigned int**)(&ind_i1), (unsigned int**)(&ind_j1), &a1, options);
 
 	int counter = 0;
-	for (int j = 0; j < size; j++)
+	for (int j = 0; j < cells_size; j++)
 	{
 		const auto& cell = cell_mesh->cells[j];
 		rhs1[cell.id] = -y1[cell.id];
@@ -481,7 +485,7 @@ void DualStochOilMethod::fill_p2()
 		&model->p2_next[0], &elemNum0, (unsigned int**)(&ind_i0), (unsigned int**)(&ind_j0), &a0, options);
 
 	int counter = 0;
-	for (int j = 0; j < size; j++)
+	for (int j = 0; j < cells_size; j++)
 	{
 		const auto& cell = cell_mesh->cells[j];
 		rhs0[cell.id] = -y0[cell.id];
@@ -494,7 +498,7 @@ void DualStochOilMethod::fill_Cp(const int cell_id, const size_t time_step)
 			&model->Cp_next[time_step][cell_id * model->cellsNum], &elemNum1, (unsigned int**)(&ind_i1), (unsigned int**)(&ind_j1), &a1, options);
 
 	int counter = 0;
-	for (int j = 0; j < size; j++)
+	for (int j = 0; j < cells_size; j++)
 	{
 		const auto& cell = cell_mesh->cells[j];
 		rhs1[cell.id] = -y1[cell.id];

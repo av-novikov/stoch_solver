@@ -101,9 +101,8 @@ void StochOilMethod::start()
 {
 	step_idx = 0;
 
-	fillIndices0();
+	fillIndices();
 	solver0.Init(model->cellsNum, 1.e-15, 1.e-15);
-	fillIndices1();
 	solver1.Init(model->cellsNum, 1.e-15, 1.e-15);
 
 	model->setPeriod(curTimePeriod);
@@ -121,49 +120,26 @@ void StochOilMethod::start()
 	model->snapshot_all(step_idx);
 	writeData();
 }
-void StochOilMethod::fillIndices0()
+void StochOilMethod::fillIndices()
 {
-	int counter = 0;
+    int counter = 0;
 
-	for (int i = 0; i < model->cellsNum; i++)
-	{
-		auto& cell = mesh->cells[i];
-		getMatrixStencil(cell);
+    for (int i = 0; i < model->cellsNum; i++)
+    {
+        auto& cell = mesh->cells[i];
+        getMatrixStencil(cell);
 
-		for (size_t i = 0; i < var_size; i++)
-			for (const int idx : cell.stencil)
-				for (size_t j = 0; j < var_size; j++)
-				{
-					ind_i0[counter] = var_size * cell.id + i;			ind_j0[counter++] = var_size * idx + j;
-				}
-	}
-
-	elemNum0 = counter;
-
-	for (int i = 0; i < var_size * model->cellsNum; i++)
-		ind_rhs0[i] = i;
-};
-void StochOilMethod::fillIndices1()
-{
-	int counter = 0;
-
-	for (int i = 0; i < model->cellsNum; i++)
-	{
-		auto& cell = mesh->cells[i];
-		getMatrixStencil(cell);
-
-		for (size_t i = 0; i < var_size; i++)
-			for (const int idx : cell.stencil)
-				for (size_t j = 0; j < var_size; j++)
-				{
-					ind_i1[counter] = var_size * cell.id + i;			ind_j1[counter++] = var_size * idx + j;
-				}
-	}
-
-	elemNum1 = counter;
-
-	for (int i = 0; i < model->cellsNum; i++)
-		ind_rhs1[i] = i;
+        for (size_t i = 0; i < var_size; i++)
+            for (const int idx : cell.stencil)
+                for (size_t j = 0; j < var_size; j++)
+                {
+                    ind_i0[counter] = ind_i1[counter] = var_size * cell.id + i;
+                    ind_j0[counter] = ind_j1[counter] = var_size * idx + j;
+                    counter++;
+                }
+        ind_rhs0[i] = ind_rhs1[i] = i;
+    }
+    elemNum0 = elemNum1 = counter;
 };
 
 void StochOilMethod::solveStep()

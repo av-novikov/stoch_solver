@@ -179,6 +179,7 @@ public:
     virtual void setPeriod(const int period) = 0;
     virtual void setWellborePeriod(int period, double cur_t) {};
     int getCellsNum() { return cellsNum; };
+    int getNodesNum() { return nodesNum; };
     void snapshot_all(const int i) { snapshotter->dump(i); }
     const CellMesh* getCellMesh() const
     {

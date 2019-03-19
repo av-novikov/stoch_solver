@@ -122,8 +122,8 @@ void AbstractMethod<stoch_oil::StochOil>::averValue(std::array<double, var_size>
 }
 
 template <class modelType>
-AbstractDualGridMethod<modelType>::AbstractDualGridMethod(modelType* _model) : model(_model), cell_mesh(_model->getCellMesh()), node_mesh(_model->getCellMesh()),
-size(_model->getCellsNum()), Tt(model->wells.back().period[model->wells.back().periodsNum - 1])
+AbstractDualGridMethod<modelType>::AbstractDualGridMethod(modelType* _model) : model(_model), cell_mesh(_model->getCellMesh()), node_mesh(_model->getNodeMesh()),
+cells_size(_model->getCellsNum()), nodes_size(_model->getNodesNum()), Tt(model->wells.back().period[model->wells.back().periodsNum - 1])
 {
     cur_t = cur_t_log = 0.0;
     curTimePeriod = 0;

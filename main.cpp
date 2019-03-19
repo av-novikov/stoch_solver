@@ -24,7 +24,7 @@ namespace issues
 
 void loadWells(const double x1, const double x2, const double y1, const double y2, 
                 const int num_x, const int num_y, const std::string fileName, 
-                std::vector<Well>& wells, std::vector<stoch_oil::Measurement>& conds, double visc)
+                std::vector<Well>& wells, std::vector<dual_stoch_oil::Measurement>& conds, double visc)
 {
     const double hx = (x2 - x1) / (double)num_x;
     const double hy = (y2 - y1) / (double)num_y;
@@ -60,7 +60,7 @@ int main()
     double y1 = 24917.4, y2 = 29700.0;// y2 = 30242.5;
     int num_x = 41, num_y = 41;
 
-	stoch_oil::Properties props;
+	dual_stoch_oil::Properties props;
 	
 	props.possible_steps_num = 4;
 	props.start_time_simple_approx = 2;
@@ -105,7 +105,7 @@ int main()
         well1.rw = 0.1;
     }
 
-	Scene<issues::StochOil> scene;
+	Scene<issues::DualStochOil> scene;
 	scene.load(props);
 	scene.start();
 

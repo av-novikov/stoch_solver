@@ -87,7 +87,7 @@ namespace mesh
         const double V;
 
         NodeRectangularUniformGrid(const int _num_x, const int _num_y, const double _hx, const double _hy, const double _hz) :
-            num_x(_num_x), num_y(_num_y), num((_num_x + 2) * (_num_y + 2)), hx(_hx), hy(_hy), hz(_hz), V(_hx * _hy * _hz)
+            num_x(_num_x), num_y(_num_y), num((_num_x + 1) * (_num_y + 1)), hx(_hx), hy(_hy), hz(_hz), V(_hx * _hy * _hz)
         {
             Point cur(0.0, 0.0, hz / 2.0);
             double hx1 = hx / (double)num_x;
@@ -99,7 +99,10 @@ namespace mesh
             {
                 for (int j = 0; j < num_y + 1; j++)
                 {
-                    ntype = (i * j == 0 || i == num_x || j == num_y) ? elem::BORDER : elem::QUAD;
+                    if ((i == 0 && j == 0) || (i == 0 && j == num_y) || (i == num_x && j == 0) || (i == num_x && j == num_y))
+                        ntype = elem::CORNER;
+                    else
+                        ntype = (i * j == 0 || i == num_x || j == num_y) ? elem::BORDER : elem::QUAD;
                     nodes.push_back(Node(counter++, ntype, cur));
                     cur.y += hy1;
                 }

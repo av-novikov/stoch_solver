@@ -155,11 +155,11 @@ public:
     static const int var_size = Model::var_size;
 protected:
     double t_dim;
-    const size_t size;
+    const size_t cells_size, nodes_size;
 
     Model* model;
     CellMesh* cell_mesh;
-    CellMesh* node_mesh;
+    NodeMesh* node_mesh;
 
     size_t curTimePeriod;
     const double Tt;
@@ -176,7 +176,7 @@ protected:
     virtual void doNextStep();
     virtual void solveStep() = 0;
 
-    inline void getMatrixStencil(Cell& cell)
+    inline void getCellMatrixStencil(Cell& cell)
     {
         const size_t ind_x = int(cell.id / (cell_mesh->num_y + 2));
         const size_t ind_y = cell.id % (cell_mesh->num_y + 2);
@@ -239,6 +239,109 @@ protected:
             cell.trans[3] = k1 * k2 * (cell.hx + beta4.hx) / (k1 * beta4.hx + k2 * cell.hx);
         }
     };
+    inline void getNodeMatrixStencil(Node& node)
+    {
+        const auto& mesh = node_mesh;
+        const size_t ind_x = int(node.id / (mesh->num_y + 1));
+        const size_t ind_y = node.id % (mesh->num_y + 1);
+        node.stencil[0] = node.id;
+        double k1, k2;
+
+        if (node.type == elem::CORNER)
+        { 
+            if (ind_y == 0 && ind_x == 0)
+            {
+                node.stencil[1] = node.id + 1;
+                node.stencil[2] = node.id + mesh->num_y + 1;
+                const Cell& beta = cell_mesh->cells[(ind_x + 1) * (cell_mesh->num_y + 2) + ind_y + 1];
+                k1 = model->getPerm(beta);
+                node.trans[0] = node.trans[1] = k1;
+            }
+            else if (ind_y == mesh->num_y && ind_x == 0)
+            {
+                node.stencil[1] = node.id - 1;
+                node.stencil[2] = node.id + mesh->num_y + 1;
+                const Cell& beta = cell_mesh->cells[(ind_x + 1) * (cell_mesh->num_y + 2) + ind_y];
+                node.trans[0] = node.trans[1] = model->getPerm(beta);
+            }
+            else if (ind_y == 0 && ind_x == mesh->num_x)
+            {
+                node.stencil[1] = node.id + 1;
+                node.stencil[2] = node.id - mesh->num_y - 1;
+                const Cell& beta = cell_mesh->cells[ind_x * (cell_mesh->num_y + 2) + ind_y + 1];
+                node.trans[0] = node.trans[1] = model->getPerm(beta);
+            }
+            else if (ind_y == mesh->num_y && ind_x == mesh->num_x)
+            {
+                node.stencil[1] = node.id - 1;
+                node.stencil[2] = node.id - mesh->num_y - 1;
+                const Cell& beta = cell_mesh->cells[ind_x * (cell_mesh->num_y + 2) + ind_y];
+                node.trans[0] = node.trans[1] = model->getPerm(beta);
+            }
+        }
+        else if (node.type == elem::BORDER)
+        {
+
+            if (ind_y == 0)
+            {
+                node.stencil[1] = node.id + 1;
+                const Cell& beta1 = cell_mesh->cells[ind_x * (cell_mesh->num_y + 2) + ind_y + 1];
+                const Cell& beta2 = cell_mesh->cells[(ind_x + 1) * (cell_mesh->num_y + 2) + ind_y + 1];
+                k1 = model->getPerm(beta1);     k2 = model->getPerm(beta2);
+                node.trans[0] = (k1 * beta1.hx + k2 * beta2.hx) / (beta1.hx + beta2.hx);
+            }
+            else if (ind_y == mesh->num_y)
+            {
+                node.stencil[1] = node.id - 1;
+                const Cell& beta1 = cell_mesh->cells[ind_x * (cell_mesh->num_y + 2) + ind_y];
+                const Cell& beta2 = cell_mesh->cells[(ind_x + 1) * (cell_mesh->num_y + 2) + ind_y];
+                k1 = model->getPerm(beta1);     k2 = model->getPerm(beta2);
+                node.trans[0] = (k1 * beta1.hx + k2 * beta2.hx) / (beta1.hx + beta2.hx);
+            }
+            if (ind_x == 0)
+            {
+                node.stencil[1] = node.id + mesh->num_y + 1;
+                const Cell& beta1 = cell_mesh->cells[(ind_x + 1) * (cell_mesh->num_y + 2) + ind_y];
+                const Cell& beta2 = cell_mesh->cells[(ind_x + 1) * (cell_mesh->num_y + 2) + ind_y + 1];
+                k1 = model->getPerm(beta1);     k2 = model->getPerm(beta2);
+                node.trans[0] = (k1 * beta1.hy + k2 * beta2.hy) / (beta1.hy + beta2.hy);
+            }
+            else if (ind_x == mesh->num_x)
+            {
+                node.stencil[1] = node.id - mesh->num_y - 1;
+                const Cell& beta1 = cell_mesh->cells[ind_x * (cell_mesh->num_y + 2) + ind_y];
+                const Cell& beta2 = cell_mesh->cells[ind_x * (cell_mesh->num_y + 2) + ind_y + 1];
+                k1 = model->getPerm(beta1);     k2 = model->getPerm(beta2);
+                node.trans[0] = (k1 * beta1.hy + k2 * beta2.hy) / (beta1.hy + beta2.hy);
+            }
+        }
+        else if (node.type == elem::QUAD)
+        {
+            node.stencil[1] = node.id - 1;
+            const Cell& beta11 = cell_mesh->cells[ind_x * (cell_mesh->num_y + 2) + ind_y];
+            const Cell& beta12 = cell_mesh->cells[(ind_x + 1) * (cell_mesh->num_y + 2) + ind_y];
+            k1 = model->getPerm(beta11);     k2 = model->getPerm(beta12);
+            node.trans[0] = (k1 * beta11.hx + k2 * beta12.hx) / (beta11.hx + beta12.hx);
+
+            node.stencil[2] = node.id + 1;
+            const Cell& beta21 = cell_mesh->cells[ind_x * (cell_mesh->num_y + 2) + ind_y + 1];
+            const Cell& beta22 = cell_mesh->cells[(ind_x + 1) * (cell_mesh->num_y + 2) + ind_y + 1];
+            k1 = model->getPerm(beta21);     k2 = model->getPerm(beta22);
+            node.trans[1] = (k1 * beta21.hx + k2 * beta22.hx) / (beta21.hx + beta22.hx);
+
+            node.stencil[3] = node.id - mesh->num_y - 1;
+            const Cell& beta31 = cell_mesh->cells[ind_x * (cell_mesh->num_y + 2) + ind_y];
+            const Cell& beta32 = cell_mesh->cells[ind_x * (cell_mesh->num_y + 2) + ind_y + 1];
+            k1 = model->getPerm(beta31);     k2 = model->getPerm(beta32);
+            node.trans[2] = (k1 * beta31.hy + k2 * beta32.hy) / (beta31.hy + beta32.hy);
+
+            node.stencil[4] = node.id + mesh->num_y + 1;
+            const Cell& beta41 = cell_mesh->cells[(ind_x + 1) * (cell_mesh->num_y + 2) + ind_y];
+            const Cell& beta42 = cell_mesh->cells[(ind_x + 1) * (cell_mesh->num_y + 2) + ind_y + 1];
+            k1 = model->getPerm(beta41);     k2 = model->getPerm(beta42);
+            node.trans[3] = (k1 * beta41.hy + k2 * beta42.hy) / (beta41.hy + beta42.hy);
+        }
+    };
 
     double** jac;
     double* y;
@@ -259,28 +362,6 @@ public:
     virtual ~AbstractDualGridMethod();
 
     virtual void fill() {};
-    void fillIndices()
-    {
-        int counter = 0;
-
-        for (int i = 0; i < model->varNum; i++)
-        {
-            auto& cell = cell_mesh->cells[i];
-            getMatrixStencil(cell);
-
-            for (size_t i = 0; i < var_size; i++)
-                for (const int idx : cell.stencil)
-                    for (size_t j = 0; j < var_size; j++)
-                    {
-                        ind_i[counter] = var_size * cell.id + i;			ind_j[counter++] = var_size * idx + j;
-                    }
-        }
-
-        elemNum = counter;
-
-        for (int i = 0; i < var_size * model->cellsNum; i++)
-            ind_rhs[i] = i;
-    };
     virtual void start();
 };
 

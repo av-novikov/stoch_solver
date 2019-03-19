@@ -257,18 +257,30 @@ void DualStochOil::setInitialState()
 		p2_prev[i] = p2_iter[i] = p2_next[i] = 0.0;
 	}
 
-	for (int i = 0; i < possible_steps_num; i++)
-		Cfp[i] = Cfp_node[i] = Cp_prev[i] = Cp_next[i] = Cp_prev_node[i] = Cp_next_node[i] = 0.0;
+    for (int i = 0; i < possible_steps_num; i++)
+    {
+        Cfp[i] = 0.0;   Cfp_node[i] = 0.0;
+        Cp_prev[i] = Cp_next[i] = 0.0;
+        Cp_prev_node[i] = Cp_next_node[i] = 0.0;
+    }
 
-    Favg.resize(cellsNum, 0.0);
-    Cf.resize(cellsNum);
-    std::for_each(Cf.begin(), Cf.end(), [&](std::vector<double>& vec) { vec.resize(cellsNum, 0.0); });
+    Favg_cells.resize(cellsNum, 0.0);   Favg_nodes.resize(nodesNum, 0.0);
+    Cf_cells.resize(cellsNum);          Cf_nodes.resize(nodesNum);
+    std::for_each(Cf_cells.begin(), Cf_cells.end(), [&](std::vector<double>& vec) { vec.resize(cellsNum, 0.0); });
+    std::for_each(Cf_nodes.begin(), Cf_nodes.end(), [&](std::vector<double>& vec) { vec.resize(nodesNum, 0.0); });
     for (int i = 0; i < cellsNum; i++)
     {
         const Cell& cell1 = cell_mesh->cells[i];
-        Favg[i] = getFavg_prior(cell1);
+        Favg_cells[i] = getFavg_prior(cell1);
         for (int j = 0; j < cellsNum; j++)
-            Cf[i][j] = getCf_prior(cell1, cell_mesh->cells[j]);
+            Cf_cells[i][j] = getCf_prior(cell1, cell_mesh->cells[j]);
+    }
+    for (int i = 0; i < nodesNum; i++)
+    {
+        const Node& node1 = node_mesh->nodes[i];
+        Favg_nodes[i] = getFavg_prior(node1);
+        for (int j = 0; j < nodesNum; j++)
+            Cf_nodes[i][j] = getCf_prior(node1, node_mesh->nodes[j]);
     }
     // Conditioning
     calculateConditioning();
@@ -482,6 +494,21 @@ adouble DualStochOil::solveSource_Cfp(const Well& well, const Cell& cur_cell) co
         return well.cur_rate * ht / cell.V / getKg(cell) * getCf(cur_cell, cell);
     else
         return well.WI / well.perm * x_cell[cell.id] * ht / cell.V;
+}
+
+adouble DualStochOil::solveInnerNode_Cfp(const Node& node, const Node& cur_node) const
+{
+    assert(node.type == elem::QUAD);
+    adouble next = x_node[node.id];
+    const auto prev = Cfp_prev_node[cur_node.id * nodesNum + node.id];
+    adouble H, var_plus, var_minus;
+    H = getS(node) * (next - prev) / getKg(node);
+
+    return 0.0;
+}
+adouble DualStochOil::solveBorderNode_Cfp(const Node& cell, const Node& cur_node) const
+{
+    return 0.0;
 }
 
 adouble DualStochOil::solveInner_p2(const Cell& cell) const
