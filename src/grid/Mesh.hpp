@@ -78,7 +78,7 @@ namespace mesh
         template<typename> friend class snapshotter::VTKSnapshotter;
         template<typename> friend class AbstractMethod;
     public:
-        typedef elem::Node Node;
+        typedef elem::DualQuad Node;
         static const int stencil = 5;
 
         std::vector<Node> nodes;
@@ -93,6 +93,7 @@ namespace mesh
             double hx1 = hx / (double)num_x;
             double hy1 = hy / (double)num_y;
             const Point size(hx1, hy1, hz);
+            Point cur_size;
             int counter = 0;
             elem::Type ntype;
             for (int i = 0; i < num_x + 1; i++)
@@ -100,10 +101,27 @@ namespace mesh
                 for (int j = 0; j < num_y + 1; j++)
                 {
                     if ((i == 0 && j == 0) || (i == 0 && j == num_y) || (i == num_x && j == 0) || (i == num_x && j == num_y))
+                    {
+                        cur_size = { hx1 / 2.0, hy1 / 2.0, hz };
                         ntype = elem::CORNER;
+                    }
+                    else if (i == 0 || i == num_x)
+                    {
+                        cur_size = { hx1 / 2.0, hy1, hz };
+                        ntype = elem::BORDER;
+                    } 
+                    else if (j == 0 || j == num_y)
+                    {
+                        cur_size = { hx1, hy1 / 2.0, hz };
+                        ntype = elem::BORDER;
+                    }
                     else
-                        ntype = (i * j == 0 || i == num_x || j == num_y) ? elem::BORDER : elem::QUAD;
-                    nodes.push_back(Node(counter++, ntype, cur));
+                    {
+                        cur_size = { hx1, hy1, hz };
+                        ntype = elem::QUAD;
+                    }
+
+                    nodes.push_back(Node(counter++, ntype, cur, cur_size));
                     cur.y += hy1;
                 }
                 cur.x += hx1;

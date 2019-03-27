@@ -248,9 +248,10 @@ namespace dual_stoch_oil
                 well.perm = exp(getFavg(cell) + getSigma2f(cell) / 2.0) * props_oil.visc;
             }
         };
-        inline double getPerm(const Cell& cell) const
+        template<class TElem>
+        inline double getPerm(const TElem& elem) const
         {
-            return props_oil.visc * exp(getFavg(cell) + getSigma2f(cell) / 2.0);
+            return props_oil.visc * exp(getFavg(elem) + getSigma2f(elem) / 2.0);
         };
         template<class TElem>
         inline double getFavg(const TElem& elem) const
@@ -287,6 +288,11 @@ namespace dual_stoch_oil
         inline double getKg(const TElem& elem) const
         {
             return exp(getFavg(elem));
+        };
+        template<class TElem>
+        inline double getGeomPerm(const TElem& elem) const
+        {
+            return getKg(elem) * props_oil.visc;
         };
 
 		adouble solveInner_p0(const Cell& cell) const;

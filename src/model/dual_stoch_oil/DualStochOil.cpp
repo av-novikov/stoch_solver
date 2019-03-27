@@ -140,6 +140,29 @@ void DualStochOil::writeCPS(const int i)
         }
         file.close();
     };
+    auto writeGeomPerm = [&]()
+    {
+        const std::string filename = "snaps/Perm_geom.cps";
+        std::ofstream file(filename.c_str(), std::ofstream::out);
+        head(file);
+
+        double buf1, buf2;
+        int counter = 0;
+        for (const auto& cell : cell_mesh->cells)
+        {
+            if (cell.type == elem::QUAD)
+            {
+                //const int y_id = cell.id % (mesh->num_y + 2);
+                //const int x_id = cell.id / (mesh->num_y + 2);
+                file << "\t" << R_dim * R_dim * M2toMilliDarcy(getGeomPerm(cell));
+                counter++;
+
+                if (counter % 5 == 0)
+                    file << "\n";
+            }
+        }
+        file.close();
+    };
 
     writePres(i);
     writePresStd(i);
@@ -147,6 +170,7 @@ void DualStochOil::writeCPS(const int i)
     {
         writePerm();
         writePermStd();
+        writeGeomPerm();
     }
 }
 void DualStochOil::setProps(const Properties& props)
@@ -504,7 +528,47 @@ adouble DualStochOil::solveInnerNode_Cfp(const Node& node, const Node& cur_node)
     adouble H, var_plus, var_minus;
     H = getS(node) * (next - prev) / getKg(node);
 
-    return 0.0;
+    const int& y_minus = node.stencil[1];
+    const int& y_plus = node.stencil[2];
+    const int& x_minus = node.stencil[3];
+    const int& x_plus = node.stencil[4];
+
+    const auto& beta_y_minus = node_mesh->nodes[y_minus];
+    const auto& beta_y_plus = node_mesh->nodes[y_plus];
+    const auto& beta_x_minus = node_mesh->nodes[x_minus];
+    const auto& beta_x_plus = node_mesh->nodes[x_plus];
+
+    const auto& nebr_y_minus = x_node[y_minus];
+    const auto& nebr_y_plus = x_node[y_plus];
+    const auto& nebr_x_minus = x_node[x_minus];
+    const auto& nebr_x_plus = x_node[x_plus];
+
+    H -= ht * ((nebr_x_plus - next) / (beta_x_plus.cent.x - node.cent.x) -
+        (next - nebr_x_minus) / (node.cent.x - beta_x_minus.cent.x)) / node.hx;
+
+    var_plus = linearInterp1d(getSigma2f(beta_x_plus), beta_x_plus.hx / 2.0, getSigma2f(node), node.hx / 2.0);
+    var_minus = linearInterp1d(getSigma2f(beta_x_minus), beta_x_minus.hx / 2.0, getSigma2f(node), node.hx / 2.0);
+    H -= ht * (log(node.trans[3] / props_oil.visc) - var_plus / 2.0 -
+        log(node.trans[2] / props_oil.visc) + var_minus / 2.0) / node.hx *
+        (nebr_x_plus - nebr_x_minus) / (beta_x_plus.cent.x - beta_x_minus.cent.x);
+
+    H -= ht * ((nebr_y_plus - next) / (beta_y_plus.cent.y - node.cent.y) -
+        (next - nebr_y_minus) / (node.cent.y - beta_y_minus.cent.y)) / node.hy;
+
+    var_plus = linearInterp1d(getSigma2f(beta_y_plus), beta_y_plus.hy / 2.0, getSigma2f(node), node.hy / 2.0);
+    var_minus = linearInterp1d(getSigma2f(beta_y_minus), beta_y_minus.hy / 2.0, getSigma2f(node), node.hy / 2.0);
+    H -= ht * (log(node.trans[1] / props_oil.visc) - var_plus / 2.0 -
+        log(node.trans[0] / props_oil.visc) + var_minus / 2.0) / node.hy *
+        (nebr_y_plus - nebr_y_minus) / (beta_y_plus.cent.y - beta_y_minus.cent.y);
+
+    double H1 = -ht * ((p0_next[x_plus] - p0_next[x_minus]) / (beta_x_plus.cent.x - beta_x_minus.cent.x) *
+        (getCf(cur_node, beta_x_plus) - getCf(cur_node, beta_x_minus)) / (beta_x_plus.cent.x - beta_x_minus.cent.x) +
+        (p0_next[y_plus] - p0_next[y_minus]) / (beta_y_plus.cent.y - beta_y_minus.cent.y) *
+        (getCf(cur_node, beta_y_plus) - getCf(cur_node, beta_y_minus)) / (beta_y_plus.cent.y - beta_y_minus.cent.y));
+
+    double H2 = -getS(node) / getKg(node) * (p0_next[node.id] - p0_prev[node.id]) * getCf(cur_node, node);
+
+    return H + H1 + H2;
 }
 adouble DualStochOil::solveBorderNode_Cfp(const Node& cell, const Node& cur_node) const
 {
