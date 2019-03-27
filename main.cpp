@@ -16,7 +16,7 @@ namespace issues
 		typename typedef methodType Method;
 	};
 
-	struct Oil : public Issue<oil::Oil, oil::OilMethod> {};
+	//struct Oil : public Issue<oil::Oil, oil::OilMethod> {};
 	struct StochOil : public Issue<stoch_oil::StochOil, stoch_oil::StochOilMethod> {};
     struct DualStochOil : public Issue<dual_stoch_oil::DualStochOil, dual_stoch_oil::DualStochOilMethod> {};
 }
@@ -24,7 +24,7 @@ namespace issues
 
 void loadWells(const double x1, const double x2, const double y1, const double y2, 
                 const int num_x, const int num_y, const std::string fileName, 
-                std::vector<Well>& wells, std::vector<dual_stoch_oil::Measurement>& conds, double visc)
+                std::vector<Well>& wells, std::vector<stoch_oil::Measurement>& conds, double visc)
 {
     const double hx = (x2 - x1) / (double)num_x;
     const double hy = (y2 - y1) / (double)num_y;
@@ -60,15 +60,15 @@ int main()
     double y1 = 24917.4, y2 = 29700.0;// y2 = 30242.5;
     int num_x = 41, num_y = 41;
 
-	dual_stoch_oil::Properties props;
+	stoch_oil::Properties props;
 	
 	props.possible_steps_num = 4;
 	props.start_time_simple_approx = 2;
 	props.t_dim = 3600.0;
 	props.ht = props.ht_min = 10000000.0;
 	props.ht_max = 100000000.0;
-    props.hx = props.R_dim = x2 - x1;
-    props.hy = y2 - y1;
+    props.hx = props.R_dim = 2100.0;// x2 - x1;
+    props.hy = 2100.0;// y2 - y1;
     props.hz = 10.0;
 	props.num_x = num_x;
     props.num_y = num_y;
@@ -79,15 +79,15 @@ int main()
 	props.props_sk.m = 0.1;
 	props.props_sk.beta = 4.E-10;
     props.props_sk.l_f = 500.0;
-	props.props_sk.sigma_f = 0.66;
+	props.props_sk.sigma_f = 0.5;
 
 	props.props_oil.visc = 1.0;
 	props.props_oil.rho_stc = 887.261;
 	props.props_oil.beta = 1.0 * 1.e-9;
 	props.props_oil.p_ref = props.props_sk.p_init;
 
-	//props.wells.push_back(Well(0, (props.num_y + 2) * (int)(props.num_x / 2 + 1) + (int)(props.num_x / 2 + 1)));
-    loadWells(x1, x2, y1, y2, num_x, num_y, "props/wells_gen.txt", props.wells, props.conditions, props.props_oil.visc);
+	props.wells.push_back(Well(0, (props.num_y + 2) * (int)(props.num_x / 2 + 1) + (int)(props.num_x / 2 + 1)));
+    //loadWells(x1, x2, y1, y2, num_x, num_y, "props/wells_gen.txt", props.wells, props.conditions, props.props_oil.visc);
     for (auto& well1 : props.wells)
     {
         well1.periodsNum = 1;
@@ -105,7 +105,7 @@ int main()
         well1.rw = 0.1;
     }
 
-	Scene<issues::DualStochOil> scene;
+	Scene<issues::StochOil> scene;
 	scene.load(props);
 	scene.start();
 
