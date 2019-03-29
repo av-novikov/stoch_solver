@@ -62,7 +62,7 @@ void StochOil::writeCPS(const int i)
             {
                 //const int y_id = cell.id % (mesh->num_y + 2);
                 //const int x_id = cell.id / (mesh->num_y + 2);
-                file << "\t" << P_dim * p0_next[cell.id] / BAR_TO_PA;
+                file << "\t" << P_dim * (p0_next[cell.id] + p2_next[cell.id]) / BAR_TO_PA;
                 counter++;
 
                 if (counter % 5 == 0)
@@ -140,6 +140,29 @@ void StochOil::writeCPS(const int i)
         }
         file.close();
     };
+    auto writeGeomPerm = [&]()
+    {
+        const std::string filename = "snaps/Perm_geom.cps";
+        std::ofstream file(filename.c_str(), std::ofstream::out);
+        head(file);
+
+        double buf1, buf2;
+        int counter = 0;
+        for (const auto& cell : mesh->cells)
+        {
+            if (cell.type == elem::QUAD)
+            {
+                //const int y_id = cell.id % (mesh->num_y + 2);
+                //const int x_id = cell.id / (mesh->num_y + 2);
+                file << "\t" << R_dim * R_dim * M2toMilliDarcy(getGeomPerm(cell));
+                counter++;
+
+                if (counter % 5 == 0)
+                    file << "\n";
+            }
+        }
+        file.close();
+    };
 
     writePres(i);
     writePresStd(i);
@@ -147,6 +170,7 @@ void StochOil::writeCPS(const int i)
     {
         writePerm();
         writePermStd();
+        writeGeomPerm();
     }
 }
 void StochOil::setProps(const Properties& props)
@@ -374,19 +398,17 @@ adouble StochOil::solveInner_p0(const Cell& cell) const
 	H -= ht * ((nebr_x_plus - next) / (beta_x_plus.cent.x - cell.cent.x) -
 			(next - nebr_x_minus) / (cell.cent.x - beta_x_minus.cent.x)) / cell.hx;
 
-    var_plus = linearInterp1d(getSigma2f(beta_x_plus), beta_x_plus.hx / 2.0, getSigma2f(cell), cell.hx / 2.0);
-    var_minus = linearInterp1d(getSigma2f(beta_x_minus), beta_x_minus.hx / 2.0, getSigma2f(cell), cell.hx / 2.0);
-	H -= ht * (log(cell.trans[3] / props_oil.visc) - var_plus / 2.0 - 
-                log(cell.trans[2] / props_oil.visc) + var_minus / 2.0) / cell.hx *
+    //var_plus = linearInterp1d(getSigma2f(beta_x_plus), beta_x_plus.hx / 2.0, getSigma2f(cell), cell.hx / 2.0);
+    //var_minus = linearInterp1d(getSigma2f(beta_x_minus), beta_x_minus.hx / 2.0, getSigma2f(cell), cell.hx / 2.0);
+	H -= ht * (log(cell.trans[3]) - log(cell.trans[2])) / cell.hx *
 			(nebr_x_plus - nebr_x_minus) / (beta_x_plus.cent.x - beta_x_minus.cent.x);
 
 	H -= ht * ((nebr_y_plus - next) / (beta_y_plus.cent.y - cell.cent.y) -
 		(next - nebr_y_minus) / (cell.cent.y - beta_y_minus.cent.y)) / cell.hy;
 
-    var_plus = linearInterp1d(getSigma2f(beta_y_plus), beta_y_plus.hy / 2.0, getSigma2f(cell), cell.hy / 2.0);
-    var_minus = linearInterp1d(getSigma2f(beta_y_minus), beta_y_minus.hy / 2.0, getSigma2f(cell), cell.hy / 2.0);
-	H -= ht * (log(cell.trans[1] / props_oil.visc) - var_plus / 2.0 - 
-                log(cell.trans[0] / props_oil.visc) + var_minus / 2.0) / cell.hy *
+    //var_plus = linearInterp1d(getSigma2f(beta_y_plus), beta_y_plus.hy / 2.0, getSigma2f(cell), cell.hy / 2.0);
+    //var_minus = linearInterp1d(getSigma2f(beta_y_minus), beta_y_minus.hy / 2.0, getSigma2f(cell), cell.hy / 2.0);
+	H -= ht * (log(cell.trans[1]) - log(cell.trans[0])) / cell.hy *
 		    (nebr_y_plus - nebr_y_minus) / (beta_y_plus.cent.y - beta_y_minus.cent.y);
 
 	return H;
@@ -399,7 +421,7 @@ adouble StochOil::solveBorder_p0(const Cell& cell) const
 	const auto& cur = x[cell.id];
 	const auto& nebr = x[cell.stencil[1]];
 
-    return /*(cur - nebr) / P_dim; */(cur - (adouble)(props_sk.p_out)) / P_dim;
+    return /*(cur - nebr) / P_dim;*/ (cur - (adouble)(props_sk.p_out)) / P_dim;
 }
 adouble StochOil::solveSource_p0(const Well& well) const
 {
@@ -416,7 +438,7 @@ adouble StochOil::solveInner_Cfp(const Cell& cell, const Cell& cur_cell) const
     adouble next = x[cell.id];
     const auto prev = Cfp_prev[cur_cell.id * cellsNum + cell.id];
 	adouble H, var_plus, var_minus;
-	H = getS(cell) * (next - prev) / getKg(cell);
+    H = getS(cell) * (next - prev) / getKg(cell);
 
 	const int& y_minus = cell.stencil[1];
 	const int& y_plus = cell.stencil[2];
@@ -436,19 +458,17 @@ adouble StochOil::solveInner_Cfp(const Cell& cell, const Cell& cur_cell) const
 	H -= ht * ((nebr_x_plus - next) / (beta_x_plus.cent.x - cell.cent.x) -
 		(next - nebr_x_minus) / (cell.cent.x - beta_x_minus.cent.x)) / cell.hx;
 
-    var_plus = linearInterp1d(getSigma2f(beta_x_plus), beta_x_plus.hx / 2.0, getSigma2f(cell), cell.hx / 2.0);
-    var_minus = linearInterp1d(getSigma2f(beta_x_minus), beta_x_minus.hx / 2.0, getSigma2f(cell), cell.hx / 2.0);
-	H -= ht * (log(cell.trans[3] / props_oil.visc) - var_plus / 2.0 - 
-                log(cell.trans[2] / props_oil.visc) + var_minus / 2.0) / cell.hx *
+    //var_plus = linearInterp1d(getSigma2f(beta_x_plus), beta_x_plus.hx / 2.0, getSigma2f(cell), cell.hx / 2.0);
+    //var_minus = linearInterp1d(getSigma2f(beta_x_minus), beta_x_minus.hx / 2.0, getSigma2f(cell), cell.hx / 2.0);
+	H -= ht * (log(cell.trans[3]) - log(cell.trans[2])) / cell.hx *
 		    (nebr_x_plus - nebr_x_minus) / (beta_x_plus.cent.x - beta_x_minus.cent.x);
 
 	H -= ht * ((nebr_y_plus - next) / (beta_y_plus.cent.y - cell.cent.y) -
 		(next - nebr_y_minus) / (cell.cent.y - beta_y_minus.cent.y)) / cell.hy;
 
-    var_plus = linearInterp1d(getSigma2f(beta_y_plus), beta_y_plus.hy / 2.0, getSigma2f(cell), cell.hy / 2.0);
-    var_minus = linearInterp1d(getSigma2f(beta_y_minus), beta_y_minus.hy / 2.0, getSigma2f(cell), cell.hy / 2.0);
-	H -= ht * (log(cell.trans[1] / props_oil.visc) - var_plus / 2.0 - 
-                log(cell.trans[0] / props_oil.visc) + var_minus / 2.0) / cell.hy *
+    //var_plus = linearInterp1d(getSigma2f(beta_y_plus), beta_y_plus.hy / 2.0, getSigma2f(cell), cell.hy / 2.0);
+    //var_minus = linearInterp1d(getSigma2f(beta_y_minus), beta_y_minus.hy / 2.0, getSigma2f(cell), cell.hy / 2.0);
+	H -= ht * (log(cell.trans[1]) - log(cell.trans[0])) / cell.hy *
 		(nebr_y_plus - nebr_y_minus) / (beta_y_plus.cent.y - beta_y_minus.cent.y);
 
 	double H1 = -ht * ((p0_next[x_plus] - p0_next[x_minus]) / (beta_x_plus.cent.x - beta_x_minus.cent.x) *
@@ -503,19 +523,17 @@ adouble StochOil::solveInner_p2(const Cell& cell) const
 	H -= ht * ((nebr_x_plus - next) / (beta_x_plus.cent.x - cell.cent.x) -
 		(next - nebr_x_minus) / (cell.cent.x - beta_x_minus.cent.x)) / cell.hx;
 
-    var_plus = linearInterp1d(getSigma2f(beta_x_plus), beta_x_plus.hx / 2.0, getSigma2f(cell), cell.hx / 2.0);
-    var_minus = linearInterp1d(getSigma2f(beta_x_minus), beta_x_minus.hx / 2.0, getSigma2f(cell), cell.hx / 2.0);
-	H -= ht * (log(cell.trans[3] / props_oil.visc) - var_plus / 2.0 - 
-                log(cell.trans[2] / props_oil.visc) + var_minus / 2.0) / cell.hx *
+    //var_plus = linearInterp1d(getSigma2f(beta_x_plus), beta_x_plus.hx / 2.0, getSigma2f(cell), cell.hx / 2.0);
+    //var_minus = linearInterp1d(getSigma2f(beta_x_minus), beta_x_minus.hx / 2.0, getSigma2f(cell), cell.hx / 2.0);
+	H -= ht * (log(cell.trans[3]) - log(cell.trans[2])) / cell.hx *
 		(nebr_x_plus - nebr_x_minus) / (beta_x_plus.cent.x - beta_x_minus.cent.x);
 
 	H -= ht * ((nebr_y_plus - next) / (beta_y_plus.cent.y - cell.cent.y) -
 		(next - nebr_y_minus) / (cell.cent.y - beta_y_minus.cent.y)) / cell.hy;
 
-    var_plus = linearInterp1d(getSigma2f(beta_y_plus), beta_y_plus.hy / 2.0, getSigma2f(cell), cell.hy / 2.0);
-    var_minus = linearInterp1d(getSigma2f(beta_y_minus), beta_y_minus.hy / 2.0, getSigma2f(cell), cell.hy / 2.0);
-	H -= ht * (log(cell.trans[1] / props_oil.visc) - var_plus / 2.0 - 
-                log(cell.trans[0] / props_oil.visc) + var_minus / 2.0) / cell.hy *
+    //var_plus = linearInterp1d(getSigma2f(beta_y_plus), beta_y_plus.hy / 2.0, getSigma2f(cell), cell.hy / 2.0);
+    //var_minus = linearInterp1d(getSigma2f(beta_y_minus), beta_y_minus.hy / 2.0, getSigma2f(cell), cell.hy / 2.0);
+	H -= ht * (log(cell.trans[1]) - log(cell.trans[0])) / cell.hy *
 		(nebr_y_plus - nebr_y_minus) / (beta_y_plus.cent.y - beta_y_minus.cent.y);
 
 	double H1 = -ht * ((Cfp_next[x_plus * cellsNum + x_plus] - Cfp_next[x_plus * cellsNum + x_minus]) -
@@ -576,19 +594,17 @@ adouble StochOil::solveInner_Cp(const Cell& cell, const Cell& cur_cell, const si
 	H -= ht * ((nebr_x_plus - next) / (beta_x_plus.cent.x - cell.cent.x) -
 		(next - nebr_x_minus) / (cell.cent.x - beta_x_minus.cent.x)) / cell.hx;
 
-    var_plus = linearInterp1d(getSigma2f(beta_x_plus), beta_x_plus.hx / 2.0, getSigma2f(cell), cell.hx / 2.0);
-    var_minus = linearInterp1d(getSigma2f(beta_x_minus), beta_x_minus.hx / 2.0, getSigma2f(cell), cell.hx / 2.0);
-	H -= ht * (log(cell.trans[3] / props_oil.visc) - var_plus / 2.0 - 
-                log(cell.trans[2] / props_oil.visc) + var_minus / 2.0) / cell.hx *
+    //var_plus = linearInterp1d(getSigma2f(beta_x_plus), beta_x_plus.hx / 2.0, getSigma2f(cell), cell.hx / 2.0);
+    //var_minus = linearInterp1d(getSigma2f(beta_x_minus), beta_x_minus.hx / 2.0, getSigma2f(cell), cell.hx / 2.0);
+	H -= ht * (log(cell.trans[3]) - log(cell.trans[2])) / cell.hx *
 		(nebr_x_plus - nebr_x_minus) / (beta_x_plus.cent.x - beta_x_minus.cent.x);
 
 	H -= ht * ((nebr_y_plus - next) / (beta_y_plus.cent.y - cell.cent.y) -
 		(next - nebr_y_minus) / (cell.cent.y - beta_y_minus.cent.y)) / cell.hy;
 
-    var_plus = linearInterp1d(getSigma2f(beta_y_plus), beta_y_plus.hy / 2.0, getSigma2f(cell), cell.hy / 2.0);
-    var_minus = linearInterp1d(getSigma2f(beta_y_minus), beta_y_minus.hy / 2.0, getSigma2f(cell), cell.hy / 2.0);
-	H -= ht * (log(cell.trans[1] / props_oil.visc) - var_plus / 2.0 - 
-                log(cell.trans[0] / props_oil.visc) + var_minus / 2.0) / cell.hy *
+    //var_plus = linearInterp1d(getSigma2f(beta_y_plus), beta_y_plus.hy / 2.0, getSigma2f(cell), cell.hy / 2.0);
+    //var_minus = linearInterp1d(getSigma2f(beta_y_minus), beta_y_minus.hy / 2.0, getSigma2f(cell), cell.hy / 2.0);
+	H -= ht * (log(cell.trans[1]) - log(cell.trans[0])) / cell.hy *
 		(nebr_y_plus - nebr_y_minus) / (beta_y_plus.cent.y - beta_y_minus.cent.y);
 
 	double H1 = -ht * ((p0_next[x_plus] - p0_next[x_minus]) / (beta_x_plus.cent.x - beta_x_minus.cent.x) *

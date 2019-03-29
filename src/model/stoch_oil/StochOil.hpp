@@ -233,6 +233,10 @@ namespace stoch_oil
         {
             return exp(getFavg(cell));
         };
+        inline double getGeomPerm(const Cell& cell) const
+        {
+            return getKg(cell) * props_oil.visc;
+        };
 
 		adouble solveInner_p0(const Cell& cell) const;
 		adouble solveBorder_p0(const Cell& cell) const;

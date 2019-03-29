@@ -481,10 +481,12 @@ void StochOilMethod::copyTimeLayer()
 {
 	model->p0_prev = model->p0_iter = model->p0_next;
 
-	model->Cfp[step_idx + 1] = model->Cfp[step_idx];
-	model->Cfp_prev = &model->Cfp[step_idx][0];
-	model->Cfp_next = &model->Cfp[step_idx + 1][0];
-	
+    if (cur_t < Tt)
+    {
+        model->Cfp[step_idx + 1] = model->Cfp[step_idx];
+        model->Cfp_prev = &model->Cfp[step_idx][0];
+        model->Cfp_next = &model->Cfp[step_idx + 1][0];
+    }
 	model->p2_prev = model->p2_iter = model->p2_next;
 
 	model->Cp_prev = model->Cp_next;

@@ -42,7 +42,7 @@ protected:
 		const size_t ind_y = cell.id % (mesh->num_y + 2);
 		cell.stencil[0] = cell.id;
 
-		const double k1 = model->getPerm(cell);
+		const double k1 = model->getGeomPerm(cell);
 		double k2;
 
 		if (cell.type == elem::BORDER)
@@ -51,28 +51,28 @@ protected:
 			{
 				cell.stencil[1] = cell.id + 1;
 				const Cell& beta = mesh->cells[cell.stencil[1]];
-				k2 = model->getPerm(beta);
+				k2 = model->getGeomPerm(beta);
 				cell.trans[0] = k1 * k2 * (cell.hy + beta.hy) / (k1 * beta.hy + k2 * cell.hy);
 			}
 			else if (ind_y == mesh->num_y + 1)
 			{
 				cell.stencil[1] = cell.id - 1;
 				const Cell& beta = mesh->cells[cell.stencil[1]];
-				k2 = model->getPerm(beta);
+				k2 = model->getGeomPerm(beta);
 				cell.trans[0] = k1 * k2 * (cell.hy + beta.hy) / (k1 * beta.hy + k2 * cell.hy);
 			}
 			if (ind_x == 0)
 			{
 				cell.stencil[1] = cell.id + mesh->num_y + 2;
 				const Cell& beta = mesh->cells[cell.stencil[1]];
-				k2 = model->getPerm(beta);
+				k2 = model->getGeomPerm(beta);
 				cell.trans[0] = k1 * k2 * (cell.hx + beta.hx) / (k1 * beta.hx + k2 * cell.hx);
 			}
 			else if (ind_x == mesh->num_x + 1)
 			{
 				cell.stencil[1] = cell.id - mesh->num_y - 2;
 				const Cell& beta = mesh->cells[cell.stencil[1]];
-				k2 = model->getPerm(beta);
+				k2 = model->getGeomPerm(beta);
 				cell.trans[0] = k1 * k2 * (cell.hx + beta.hx) / (k1 * beta.hx + k2 * cell.hx);
 			}
 		}
@@ -80,22 +80,22 @@ protected:
 		{
 			cell.stencil[1] = cell.id - 1;
 			const Cell& beta1 = mesh->cells[cell.stencil[1]];
-			k2 = model->getPerm(beta1);
+			k2 = model->getGeomPerm(beta1);
 			cell.trans[0] = k1 * k2 * (cell.hy + beta1.hy) / (k1 * beta1.hy + k2 * cell.hy);
 			
             cell.stencil[2] = cell.id + 1;
 			const Cell& beta2 = mesh->cells[cell.stencil[2]];
-			k2 = model->getPerm(beta2);
+			k2 = model->getGeomPerm(beta2);
 			cell.trans[1] = k1 * k2 * (cell.hy + beta2.hy) / (k1 * beta2.hy + k2 * cell.hy);
 			
             cell.stencil[3] = cell.id - mesh->num_y - 2;
 			const Cell& beta3 = mesh->cells[cell.stencil[3]];
-			k2 = model->getPerm(beta3);
+			k2 = model->getGeomPerm(beta3);
 			cell.trans[2] = k1 * k2 * (cell.hx + beta3.hx) / (k1 * beta3.hx + k2 * cell.hx);
 			
             cell.stencil[4] = cell.id + mesh->num_y + 2;
 			const Cell& beta4 = mesh->cells[cell.stencil[4]];
-			k2 = model->getPerm(beta4);
+			k2 = model->getGeomPerm(beta4);
 			cell.trans[3] = k1 * k2 * (cell.hx + beta4.hx) / (k1 * beta4.hx + k2 * cell.hx);
 		}
 	};
@@ -182,7 +182,7 @@ protected:
         const size_t ind_y = cell.id % (cell_mesh->num_y + 2);
         cell.stencil[0] = cell.id;
 
-        const double k1 = model->getPerm(cell);
+        const double k1 = model->getGeomPerm(cell);
         double k2;
 
         if (cell.type == elem::BORDER)
@@ -191,28 +191,28 @@ protected:
             {
                 cell.stencil[1] = cell.id + 1;
                 const Cell& beta = cell_mesh->cells[cell.stencil[1]];
-                k2 = model->getPerm(beta);
+                k2 = model->getGeomPerm(beta);
                 cell.trans[0] = k1 * k2 * (cell.hy + beta.hy) / (k1 * beta.hy + k2 * cell.hy);
             }
             else if (ind_y == cell_mesh->num_y + 1)
             {
                 cell.stencil[1] = cell.id - 1;
                 const Cell& beta = cell_mesh->cells[cell.stencil[1]];
-                k2 = model->getPerm(beta);
+                k2 = model->getGeomPerm(beta);
                 cell.trans[0] = k1 * k2 * (cell.hy + beta.hy) / (k1 * beta.hy + k2 * cell.hy);
             }
             if (ind_x == 0)
             {
                 cell.stencil[1] = cell.id + cell_mesh->num_y + 2;
                 const Cell& beta = cell_mesh->cells[cell.stencil[1]];
-                k2 = model->getPerm(beta);
+                k2 = model->getGeomPerm(beta);
                 cell.trans[0] = k1 * k2 * (cell.hx + beta.hx) / (k1 * beta.hx + k2 * cell.hx);
             }
             else if (ind_x == cell_mesh->num_x + 1)
             {
                 cell.stencil[1] = cell.id - cell_mesh->num_y - 2;
                 const Cell& beta = cell_mesh->cells[cell.stencil[1]];
-                k2 = model->getPerm(beta);
+                k2 = model->getGeomPerm(beta);
                 cell.trans[0] = k1 * k2 * (cell.hx + beta.hx) / (k1 * beta.hx + k2 * cell.hx);
             }
         }
@@ -220,22 +220,22 @@ protected:
         {
             cell.stencil[1] = cell.id - 1;
             const Cell& beta1 = cell_mesh->cells[cell.stencil[1]];
-            k2 = model->getPerm(beta1);
+            k2 = model->getGeomPerm(beta1);
             cell.trans[0] = k1 * k2 * (cell.hy + beta1.hy) / (k1 * beta1.hy + k2 * cell.hy);
 
             cell.stencil[2] = cell.id + 1;
             const Cell& beta2 = cell_mesh->cells[cell.stencil[2]];
-            k2 = model->getPerm(beta2);
+            k2 = model->getGeomPerm(beta2);
             cell.trans[1] = k1 * k2 * (cell.hy + beta2.hy) / (k1 * beta2.hy + k2 * cell.hy);
 
             cell.stencil[3] = cell.id - cell_mesh->num_y - 2;
             const Cell& beta3 = cell_mesh->cells[cell.stencil[3]];
-            k2 = model->getPerm(beta3);
+            k2 = model->getGeomPerm(beta3);
             cell.trans[2] = k1 * k2 * (cell.hx + beta3.hx) / (k1 * beta3.hx + k2 * cell.hx);
 
             cell.stencil[4] = cell.id + cell_mesh->num_y + 2;
             const Cell& beta4 = cell_mesh->cells[cell.stencil[4]];
-            k2 = model->getPerm(beta4);
+            k2 = model->getGeomPerm(beta4);
             cell.trans[3] = k1 * k2 * (cell.hx + beta4.hx) / (k1 * beta4.hx + k2 * cell.hx);
         }
     };
@@ -254,7 +254,7 @@ protected:
                 node.stencil[1] = node.id + 1;
                 node.stencil[2] = node.id + mesh->num_y + 1;
                 const Cell& beta = cell_mesh->cells[(ind_x + 1) * (cell_mesh->num_y + 2) + ind_y + 1];
-                k1 = model->getPerm(beta);
+                k1 = model->getGeomPerm(beta);
                 node.trans[0] = node.trans[1] = k1;
             }
             else if (ind_y == mesh->num_y && ind_x == 0)
@@ -262,21 +262,21 @@ protected:
                 node.stencil[1] = node.id - 1;
                 node.stencil[2] = node.id + mesh->num_y + 1;
                 const Cell& beta = cell_mesh->cells[(ind_x + 1) * (cell_mesh->num_y + 2) + ind_y];
-                node.trans[0] = node.trans[1] = model->getPerm(beta);
+                node.trans[0] = node.trans[1] = model->getGeomPerm(beta);
             }
             else if (ind_y == 0 && ind_x == mesh->num_x)
             {
                 node.stencil[1] = node.id + 1;
                 node.stencil[2] = node.id - mesh->num_y - 1;
                 const Cell& beta = cell_mesh->cells[ind_x * (cell_mesh->num_y + 2) + ind_y + 1];
-                node.trans[0] = node.trans[1] = model->getPerm(beta);
+                node.trans[0] = node.trans[1] = model->getGeomPerm(beta);
             }
             else if (ind_y == mesh->num_y && ind_x == mesh->num_x)
             {
                 node.stencil[1] = node.id - 1;
                 node.stencil[2] = node.id - mesh->num_y - 1;
                 const Cell& beta = cell_mesh->cells[ind_x * (cell_mesh->num_y + 2) + ind_y];
-                node.trans[0] = node.trans[1] = model->getPerm(beta);
+                node.trans[0] = node.trans[1] = model->getGeomPerm(beta);
             }
         }
         else if (node.type == elem::BORDER)
@@ -287,7 +287,7 @@ protected:
                 node.stencil[1] = node.id + 1;
                 const Cell& beta1 = cell_mesh->cells[ind_x * (cell_mesh->num_y + 2) + ind_y + 1];
                 const Cell& beta2 = cell_mesh->cells[(ind_x + 1) * (cell_mesh->num_y + 2) + ind_y + 1];
-                k1 = model->getPerm(beta1);     k2 = model->getPerm(beta2);
+                k1 = model->getGeomPerm(beta1);     k2 = model->getGeomPerm(beta2);
                 node.trans[0] = (k1 * beta1.hx + k2 * beta2.hx) / (beta1.hx + beta2.hx);
             }
             else if (ind_y == mesh->num_y)
@@ -295,7 +295,7 @@ protected:
                 node.stencil[1] = node.id - 1;
                 const Cell& beta1 = cell_mesh->cells[ind_x * (cell_mesh->num_y + 2) + ind_y];
                 const Cell& beta2 = cell_mesh->cells[(ind_x + 1) * (cell_mesh->num_y + 2) + ind_y];
-                k1 = model->getPerm(beta1);     k2 = model->getPerm(beta2);
+                k1 = model->getGeomPerm(beta1);     k2 = model->getGeomPerm(beta2);
                 node.trans[0] = (k1 * beta1.hx + k2 * beta2.hx) / (beta1.hx + beta2.hx);
             }
             if (ind_x == 0)
@@ -303,7 +303,7 @@ protected:
                 node.stencil[1] = node.id + mesh->num_y + 1;
                 const Cell& beta1 = cell_mesh->cells[(ind_x + 1) * (cell_mesh->num_y + 2) + ind_y];
                 const Cell& beta2 = cell_mesh->cells[(ind_x + 1) * (cell_mesh->num_y + 2) + ind_y + 1];
-                k1 = model->getPerm(beta1);     k2 = model->getPerm(beta2);
+                k1 = model->getGeomPerm(beta1);     k2 = model->getGeomPerm(beta2);
                 node.trans[0] = (k1 * beta1.hy + k2 * beta2.hy) / (beta1.hy + beta2.hy);
             }
             else if (ind_x == mesh->num_x)
@@ -311,7 +311,7 @@ protected:
                 node.stencil[1] = node.id - mesh->num_y - 1;
                 const Cell& beta1 = cell_mesh->cells[ind_x * (cell_mesh->num_y + 2) + ind_y];
                 const Cell& beta2 = cell_mesh->cells[ind_x * (cell_mesh->num_y + 2) + ind_y + 1];
-                k1 = model->getPerm(beta1);     k2 = model->getPerm(beta2);
+                k1 = model->getGeomPerm(beta1);     k2 = model->getGeomPerm(beta2);
                 node.trans[0] = (k1 * beta1.hy + k2 * beta2.hy) / (beta1.hy + beta2.hy);
             }
         }
@@ -320,25 +320,25 @@ protected:
             node.stencil[1] = node.id - 1;
             const Cell& beta11 = cell_mesh->cells[ind_x * (cell_mesh->num_y + 2) + ind_y];
             const Cell& beta12 = cell_mesh->cells[(ind_x + 1) * (cell_mesh->num_y + 2) + ind_y];
-            k1 = model->getPerm(beta11);     k2 = model->getPerm(beta12);
+            k1 = model->getGeomPerm(beta11);     k2 = model->getGeomPerm(beta12);
             node.trans[0] = (k1 * beta11.hx + k2 * beta12.hx) / (beta11.hx + beta12.hx);
 
             node.stencil[2] = node.id + 1;
             const Cell& beta21 = cell_mesh->cells[ind_x * (cell_mesh->num_y + 2) + ind_y + 1];
             const Cell& beta22 = cell_mesh->cells[(ind_x + 1) * (cell_mesh->num_y + 2) + ind_y + 1];
-            k1 = model->getPerm(beta21);     k2 = model->getPerm(beta22);
+            k1 = model->getGeomPerm(beta21);     k2 = model->getGeomPerm(beta22);
             node.trans[1] = (k1 * beta21.hx + k2 * beta22.hx) / (beta21.hx + beta22.hx);
 
             node.stencil[3] = node.id - mesh->num_y - 1;
             const Cell& beta31 = cell_mesh->cells[ind_x * (cell_mesh->num_y + 2) + ind_y];
             const Cell& beta32 = cell_mesh->cells[ind_x * (cell_mesh->num_y + 2) + ind_y + 1];
-            k1 = model->getPerm(beta31);     k2 = model->getPerm(beta32);
+            k1 = model->getGeomPerm(beta31);     k2 = model->getGeomPerm(beta32);
             node.trans[2] = (k1 * beta31.hy + k2 * beta32.hy) / (beta31.hy + beta32.hy);
 
             node.stencil[4] = node.id + mesh->num_y + 1;
             const Cell& beta41 = cell_mesh->cells[(ind_x + 1) * (cell_mesh->num_y + 2) + ind_y];
             const Cell& beta42 = cell_mesh->cells[(ind_x + 1) * (cell_mesh->num_y + 2) + ind_y + 1];
-            k1 = model->getPerm(beta41);     k2 = model->getPerm(beta42);
+            k1 = model->getGeomPerm(beta41);     k2 = model->getGeomPerm(beta42);
             node.trans[3] = (k1 * beta41.hy + k2 * beta42.hy) / (beta41.hy + beta42.hy);
         }
     };

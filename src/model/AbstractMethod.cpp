@@ -206,6 +206,5 @@ void AbstractDualGridMethod<modelType>::averValue(std::array<double, var_size>& 
         val /= cell_mesh->V;
 }
 
-template class AbstractMethod<oil::Oil>;
 template class AbstractMethod<stoch_oil::StochOil>;
 template class AbstractDualGridMethod<dual_stoch_oil::DualStochOil>;

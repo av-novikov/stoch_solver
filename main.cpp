@@ -62,10 +62,10 @@ int main()
 
 	stoch_oil::Properties props;
 	
-	props.possible_steps_num = 4;
-	props.start_time_simple_approx = 2;
+	props.possible_steps_num = 2;
+	props.start_time_simple_approx = 1;
 	props.t_dim = 3600.0;
-	props.ht = props.ht_min = 10000000.0;
+	props.ht = props.ht_min = 100000000.0;
 	props.ht_max = 100000000.0;
     props.hx = props.R_dim = 2100.0;// x2 - x1;
     props.hy = 2100.0;// y2 - y1;
@@ -75,11 +75,11 @@ int main()
 	int num = (props.num_x + 2) * (props.num_y + 2);
 
 	props.props_sk.p_init = props.props_sk.p_out = 275.39 * BAR_TO_PA;
-	props.props_sk.perm = 500.0;
 	props.props_sk.m = 0.1;
 	props.props_sk.beta = 4.E-10;
-    props.props_sk.l_f = 500.0;
+    props.props_sk.l_f = 500.0 / 3.0;
 	props.props_sk.sigma_f = 0.5;
+    props.props_sk.perm = 100.0 * exp(props.props_sk.sigma_f * props.props_sk.sigma_f / 2.0);
 
 	props.props_oil.visc = 1.0;
 	props.props_oil.rho_stc = 887.261;
@@ -95,7 +95,7 @@ int main()
         well1.period[0] = 365.0 * 86400.0;
         well1.rate.resize(well1.periodsNum);
         //if(well1.id != 13)
-            well1.rate[0] = -1000.0;
+            well1.rate[0] = -430.0;
         //else
         //    well1.rate[0] = -100.0;
         well1.pwf.resize(well1.periodsNum);
